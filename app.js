@@ -83,11 +83,64 @@ const slugify = (value = '') =>
 
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const MAIN_CATEGORY_ORDER = [
+  'BATTERY',
+  'COPPER ACCESSORIES',
+  'COPPER CABLES',
+  'ELEVATOR CABLES',
+  'FIBER ACCESSORIES',
+  'FIBER CABLES',
+  'PDU',
+  'RACK ACCESSORIES',
+  'RACKS AND CABINETS',
+  'TELECOM IP RACKS',
+  'UPS',
+  'UPS ACCESSORIES'
+];
+
+const MAIN_CATEGORY_ORDER_INDEX = new Map(MAIN_CATEGORY_ORDER.map((name, index) => [name, index]));
+
+const normalizeCategoryText = (value = '') => slugify(value).replace(/-/g, ' ');
+
+const resolveMainCategory = (topCategory, fullCategoryText = '') => {
+  const inputs = [topCategory, fullCategoryText]
+    .filter(Boolean)
+    .map((value) => normalizeCategoryText(value));
+
+  for (const input of inputs) {
+    if (input.includes('ups accessories') || input.includes('ups accessory')) return 'UPS ACCESSORIES';
+    if (input.includes('telecom ip racks') || input.includes('telecom ip rack')) return 'TELECOM IP RACKS';
+    if (input.includes('racks and cabinets') || input.includes('rack and cabinet')) return 'RACKS AND CABINETS';
+    if (input.includes('rack accessories') || input.includes('rack accessory')) return 'RACK ACCESSORIES';
+    if (input.includes('fiber accessories') || input.includes('fiber accessory')) return 'FIBER ACCESSORIES';
+    if (input.includes('fiber cables') || input.includes('fiber cable')) return 'FIBER CABLES';
+    if (input.includes('copper accessories') || input.includes('copper accessory')) return 'COPPER ACCESSORIES';
+    if (input.includes('copper cables') || input.includes('copper cable')) return 'COPPER CABLES';
+    if (input.includes('elevator cables') || input.includes('elevator cable')) return 'ELEVATOR CABLES';
+    if (input.includes('battery') || input.includes('batteries')) return 'BATTERY';
+    if (input.includes('pdu') || input.includes('power distribution unit')) return 'PDU';
+    if (input.includes('ups')) return 'UPS';
+  }
+
+  const explicit = String(topCategory || '').trim().toUpperCase();
+  if (MAIN_CATEGORY_ORDER_INDEX.has(explicit)) return explicit;
+
+  return String(topCategory || '').trim() || 'Uncategorized';
+};
+
+const sortCategories = (list = []) =>
+  [...list].sort((a, b) => {
+    const aIdx = MAIN_CATEGORY_ORDER_INDEX.has(a.name) ? MAIN_CATEGORY_ORDER_INDEX.get(a.name) : Number.MAX_SAFE_INTEGER;
+    const bIdx = MAIN_CATEGORY_ORDER_INDEX.has(b.name) ? MAIN_CATEGORY_ORDER_INDEX.get(b.name) : Number.MAX_SAFE_INTEGER;
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    return a.name.localeCompare(b.name);
+  });
+
 const parseTopCategory = (doc) => {
   const categoryText = String(doc.Categories || doc.category || '').trim();
   if (!categoryText) return 'Uncategorized';
-  const first = categoryText.split('>')[0] || categoryText;
-  return first.trim();
+  const first = (categoryText.split('>')[0] || categoryText).split(',')[0] || categoryText;
+  return resolveMainCategory(first.trim(), categoryText);
 };
 
 const parseImageList = (doc) => {
@@ -148,7 +201,7 @@ const buildCategoryBuckets = (items) => {
     current.count += 1;
     map.set(slug, current);
   }
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  return sortCategories(Array.from(map.values()));
 };
 
 const applySort = (items, sortBy) => {
@@ -224,7 +277,7 @@ app.get('/api/products/grouped-by-category', async (req, res) => {
       return acc;
     }, {});
 
-    return res.json({ items: Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name)) });
+    return res.json({ items: sortCategories(Object.values(grouped)) });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
