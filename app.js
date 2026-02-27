@@ -352,6 +352,28 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+app.get('/api/products/slug/:slug', async (req, res) => {
+  try {
+    await ensureDb();
+    const { slug } = req.params;
+    const normalizedSlug = slugify(slug);
+    if (!normalizedSlug) return res.status(400).json({ message: 'Invalid slug' });
+
+    if (USE_DB) {
+      const docs = await Product.find({}, LIST_PROJECTION, { maxTimeMS: 15000 }).lean();
+      const found = docs.find((doc) => slugify(doc?.Name || doc?.name || '') === normalizedSlug);
+      if (!found) return res.status(404).json({ message: 'Product not found' });
+      return res.json({ item: normalizeProduct(found) });
+    }
+
+    const found = fallbackProducts.find((item) => slugify(item?.Name || item?.name || '') === normalizedSlug);
+    if (!found) return res.status(404).json({ message: 'Product not found' });
+    return res.json({ item: normalizeProduct(found) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 app.get('/api/products/:id', async (req, res) => {
   try {
     await ensureDb();
