@@ -81,6 +81,13 @@ const slugify = (value = '') =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+const slugifyLegacy = (value = '') =>
+  String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const MAIN_CATEGORY_ORDER = [
@@ -357,16 +364,23 @@ app.get('/api/products/slug/:slug', async (req, res) => {
     await ensureDb();
     const { slug } = req.params;
     const normalizedSlug = slugify(slug);
+    const normalizedLegacySlug = slugifyLegacy(slug);
     if (!normalizedSlug) return res.status(400).json({ message: 'Invalid slug' });
 
     if (USE_DB) {
       const docs = await Product.find({}, LIST_PROJECTION, { maxTimeMS: 15000 }).lean();
-      const found = docs.find((doc) => slugify(doc?.Name || doc?.name || '') === normalizedSlug);
+      const found = docs.find((doc) => {
+        const name = doc?.Name || doc?.name || '';
+        return slugify(name) === normalizedSlug || slugifyLegacy(name) === normalizedLegacySlug;
+      });
       if (!found) return res.status(404).json({ message: 'Product not found' });
       return res.json({ item: normalizeProduct(found) });
     }
 
-    const found = fallbackProducts.find((item) => slugify(item?.Name || item?.name || '') === normalizedSlug);
+    const found = fallbackProducts.find((item) => {
+      const name = item?.Name || item?.name || '';
+      return slugify(name) === normalizedSlug || slugifyLegacy(name) === normalizedLegacySlug;
+    });
     if (!found) return res.status(404).json({ message: 'Product not found' });
     return res.json({ item: normalizeProduct(found) });
   } catch (error) {
