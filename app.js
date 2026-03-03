@@ -509,20 +509,30 @@ app.post('/api/support/tickets', async (req, res) => {
       status: 'open'
     });
 
+    // Do not block API response on SMTP network latency/timeouts.
+    // Ticket persistence is the primary path; email runs in the background.
     let emailSent = false;
-    let emailError = '';
-    try {
-      emailSent = await sendTicketNotification(ticket);
-    } catch (mailError) {
-      emailError = mailError?.message || 'Unknown email delivery error';
-      // eslint-disable-next-line no-console
-      console.error('Support ticket email failed:', emailError);
-    }
+    let emailError = 'Email notification queued for background delivery.';
+    const ticketId = String(ticket._id);
+    Promise.resolve()
+      .then(() => sendTicketNotification(ticket))
+      .then((sent) => {
+        if (!sent) {
+          // eslint-disable-next-line no-console
+          console.warn(`Support ticket email skipped for ${ticketId}: transporter not configured.`);
+        }
+      })
+      .catch((mailError) => {
+        const reason = mailError?.message || 'Unknown email delivery error';
+        // eslint-disable-next-line no-console
+        console.error(`Support ticket email failed for ${ticketId}:`, reason);
+      });
 
     return res.status(201).json({
       item: ticket,
       emailSent,
-      emailError
+      emailError,
+      emailQueued: true
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
