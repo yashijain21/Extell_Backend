@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import nodemailer from 'nodemailer';
 
 dotenv.config();
 
@@ -19,6 +18,12 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || 'false') === 'true';
 const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'no-reply@extell.local';
+const SMTP_CONN_TIMEOUT_MS = Number(process.env.SMTP_CONN_TIMEOUT_MS) || 8000;
+const SMTP_GREET_TIMEOUT_MS = Number(process.env.SMTP_GREET_TIMEOUT_MS) || 8000;
+const SMTP_SOCKET_TIMEOUT_MS = Number(process.env.SMTP_SOCKET_TIMEOUT_MS) || 10000;
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_API_URL = process.env.RESEND_API_URL || 'https://api.resend.com/emails';
+const RESEND_FROM = process.env.RESEND_FROM || SMTP_FROM;
 
 app.use(cors());
 app.use(express.json());
@@ -257,12 +262,18 @@ const ensureDb = async () => {
   await mongoose.connect(MONGODB_URI, { dbName: DB_NAME });
 };
 
-const createSupportTransport = () => {
+let supportTransportPromise;
+const createSupportTransport = async () => {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  const nodemailerModule = await import('nodemailer');
+  const nodemailer = nodemailerModule.default || nodemailerModule;
   return nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_SECURE,
+    connectionTimeout: SMTP_CONN_TIMEOUT_MS,
+    greetingTimeout: SMTP_GREET_TIMEOUT_MS,
+    socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS
@@ -270,10 +281,46 @@ const createSupportTransport = () => {
   });
 };
 
-const supportTransport = createSupportTransport();
+const getSupportTransport = async () => {
+  if (!supportTransportPromise) {
+    supportTransportPromise = createSupportTransport().catch((error) => {
+      supportTransportPromise = null;
+      throw error;
+    });
+  }
+  return supportTransportPromise;
+};
+
+const normalizeFromEmail = (fromValue = '') => {
+  const match = String(fromValue).match(/<([^>]+)>/);
+  return (match ? match[1] : fromValue).trim();
+};
+
+const sendViaResend = async ({ subject, text, replyTo }) => {
+  if (!RESEND_API_KEY) return false;
+  const payload = {
+    from: RESEND_FROM,
+    to: [SUPPORT_TICKET_TO],
+    subject,
+    text,
+    reply_to: replyTo
+  };
+  const response = await fetch(RESEND_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Resend API failed (${response.status}): ${body}`);
+  }
+  return true;
+};
 
 const sendTicketNotification = async (ticket) => {
-  if (!supportTransport) return false;
   const subject = `[Support Ticket] ${ticket.priority.toUpperCase()} - ${ticket.category}`;
   const text = [
     'A new support ticket has been submitted.',
@@ -286,12 +333,34 @@ const sendTicketNotification = async (ticket) => {
     `Attachments: ${(ticket.attachmentNames || []).join(', ') || 'None'}`
   ].join('\n');
 
-  await supportTransport.sendMail({
-    from: SMTP_FROM,
-    to: SUPPORT_TICKET_TO,
-    replyTo: ticket.email,
+  const transport = await getSupportTransport().catch(() => null);
+  if (transport) {
+    try {
+      await transport.sendMail({
+        from: SMTP_FROM,
+        to: SUPPORT_TICKET_TO,
+        replyTo: ticket.email,
+        subject,
+        text
+      });
+      return true;
+    } catch (smtpError) {
+      // Try Resend as fallback on SMTP network/auth issues.
+      if (!RESEND_API_KEY) throw smtpError;
+      await sendViaResend({
+        subject,
+        text,
+        replyTo: normalizeFromEmail(ticket.email)
+      });
+      return true;
+    }
+  }
+
+  if (!RESEND_API_KEY) return false;
+  await sendViaResend({
     subject,
-    text
+    text,
+    replyTo: normalizeFromEmail(ticket.email)
   });
 
   return true;
@@ -477,10 +546,13 @@ app.get('/api/products/:id', async (req, res) => {
 app.post('/api/support/tickets', async (req, res) => {
   try {
     if (!USE_DB) {
-      return res.status(503).json({ message: 'Database is not configured for support tickets.' });
+      return res
+        .status(503)
+        .json({ message: 'Database is not configured for support tickets.' });
     }
 
     await ensureDb();
+
     const payload = req.body || {};
     const email = String(payload.email || '').trim().toLowerCase();
     const serialNumber = String(payload.serialNumber || '').trim();
@@ -492,7 +564,9 @@ app.post('/api/support/tickets', async (req, res) => {
       : [];
 
     if (!email || !category || !description) {
-      return res.status(400).json({ message: 'Email, product category, and issue description are required.' });
+      return res.status(400).json({
+        message: 'Email, product category, and issue description are required.'
+      });
     }
 
     if (!['normal', 'high', 'critical'].includes(priority)) {
@@ -509,31 +583,23 @@ app.post('/api/support/tickets', async (req, res) => {
       status: 'open'
     });
 
-    // Do not block API response on SMTP network latency/timeouts.
-    // Ticket persistence is the primary path; email runs in the background.
     let emailSent = false;
-    let emailError = 'Email notification queued for background delivery.';
-    const ticketId = String(ticket._id);
-    Promise.resolve()
-      .then(() => sendTicketNotification(ticket))
-      .then((sent) => {
-        if (!sent) {
-          // eslint-disable-next-line no-console
-          console.warn(`Support ticket email skipped for ${ticketId}: transporter not configured.`);
-        }
-      })
-      .catch((mailError) => {
-        const reason = mailError?.message || 'Unknown email delivery error';
-        // eslint-disable-next-line no-console
-        console.error(`Support ticket email failed for ${ticketId}:`, reason);
-      });
+    let emailError = null;
+
+    try {
+      await sendTicketNotification(ticket);
+      emailSent = true;
+    } catch (err) {
+      emailError = err.message;
+      console.error('Email failed:', err.message);
+    }
 
     return res.status(201).json({
       item: ticket,
       emailSent,
-      emailError,
-      emailQueued: true
+      emailError
     });
+
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
