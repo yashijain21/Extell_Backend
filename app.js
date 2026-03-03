@@ -242,6 +242,40 @@ const buildCategoryBuckets = (items) => {
   return sortCategories(Array.from(map.values()));
 };
 
+const buildSupportCategoryHierarchy = (docs = []) => {
+  const groupMap = new Map();
+
+  for (const doc of docs) {
+    const categoryText = String(doc.Categories || doc.category || '').trim();
+    if (!categoryText) continue;
+
+    const primaryPath = categoryText.split(',')[0].trim();
+    const parts = primaryPath
+      .split('>')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (!parts.length) continue;
+
+    const main = resolveMainCategory(parts[0], categoryText);
+    const sub = parts[1] || '';
+
+    if (!groupMap.has(main)) {
+      groupMap.set(main, new Set());
+    }
+    if (sub) {
+      groupMap.get(main).add(sub);
+    }
+  }
+
+  const groups = Array.from(groupMap.entries()).map(([name, subSet]) => ({
+    name,
+    subcategories: Array.from(subSet).sort((a, b) => a.localeCompare(b))
+  }));
+
+  return sortCategories(groups);
+};
+
 const applySort = (items, sortBy) => {
   const list = [...items];
   switch (sortBy) {
@@ -385,6 +419,19 @@ app.get('/api/categories', async (_req, res) => {
     const docs = USE_DB ? await Product.find({}, { Categories: 1, category: 1 }, { maxTimeMS: 12000 }).lean() : fallbackProducts;
     const normalized = docs.map(normalizeProduct);
     return res.json({ items: buildCategoryBuckets(normalized) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+app.get('/api/support/categories', async (_req, res) => {
+  try {
+    await ensureDb();
+    const docs = USE_DB
+      ? await Product.find({}, { Categories: 1, category: 1 }, { maxTimeMS: 12000 }).lean()
+      : fallbackProducts;
+
+    return res.json({ items: buildSupportCategoryHierarchy(docs) });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
