@@ -510,16 +510,19 @@ app.post('/api/support/tickets', async (req, res) => {
     });
 
     let emailSent = false;
+    let emailError = '';
     try {
       emailSent = await sendTicketNotification(ticket);
     } catch (mailError) {
+      emailError = mailError?.message || 'Unknown email delivery error';
       // eslint-disable-next-line no-console
-      console.error('Support ticket email failed:', mailError.message);
+      console.error('Support ticket email failed:', emailError);
     }
 
     return res.status(201).json({
       item: ticket,
-      emailSent
+      emailSent,
+      emailError
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
