@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
 
@@ -10,12 +11,36 @@ const PORT = Number(process.env.PORT) || 4000;
 const MONGODB_URI = process.env.MONGODB_URI || '';
 const DB_NAME = process.env.DB_NAME || 'Extell';
 const COLLECTION_NAME = process.env.COLLECTION_NAME || 'Products';
+const SUPPORT_TICKETS_COLLECTION = process.env.SUPPORT_TICKETS_COLLECTION || 'SupportTickets';
+const SUPPORT_TICKET_TO = process.env.SUPPORT_TICKET_TO || 'yashijain935@gmail.com';
+const SMTP_HOST = process.env.SMTP_HOST || '';
+const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
+const SMTP_SECURE = String(process.env.SMTP_SECURE || 'false') === 'true';
+const SMTP_USER = process.env.SMTP_USER || '';
+const SMTP_PASS = process.env.SMTP_PASS || '';
+const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'no-reply@extell.local';
 
 app.use(cors());
 app.use(express.json());
 
 const productSchema = new mongoose.Schema({}, { strict: false, collection: COLLECTION_NAME });
 const Product = mongoose.models.Product || mongoose.model('Product', productSchema);
+const supportTicketSchema = new mongoose.Schema(
+  {
+    email: { type: String, required: true, trim: true, lowercase: true },
+    serialNumber: { type: String, default: '', trim: true },
+    category: { type: String, required: true, trim: true },
+    priority: { type: String, enum: ['normal', 'high', 'critical'], default: 'normal' },
+    description: { type: String, required: true, trim: true },
+    attachmentNames: { type: [String], default: [] },
+    status: { type: String, default: 'open' }
+  },
+  {
+    timestamps: true,
+    collection: SUPPORT_TICKETS_COLLECTION
+  }
+);
+const SupportTicket = mongoose.models.SupportTicket || mongoose.model('SupportTicket', supportTicketSchema);
 const USE_DB = Boolean(MONGODB_URI);
 const LIST_PROJECTION = {
   _id: 1,
@@ -232,6 +257,46 @@ const ensureDb = async () => {
   await mongoose.connect(MONGODB_URI, { dbName: DB_NAME });
 };
 
+const createSupportTransport = () => {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS
+    }
+  });
+};
+
+const supportTransport = createSupportTransport();
+
+const sendTicketNotification = async (ticket) => {
+  if (!supportTransport) return false;
+  const subject = `[Support Ticket] ${ticket.priority.toUpperCase()} - ${ticket.category}`;
+  const text = [
+    'A new support ticket has been submitted.',
+    `Ticket ID: ${ticket._id}`,
+    `Email: ${ticket.email}`,
+    `Serial Number: ${ticket.serialNumber || 'N/A'}`,
+    `Category: ${ticket.category}`,
+    `Priority: ${ticket.priority}`,
+    `Description: ${ticket.description}`,
+    `Attachments: ${(ticket.attachmentNames || []).join(', ') || 'None'}`
+  ].join('\n');
+
+  await supportTransport.sendMail({
+    from: SMTP_FROM,
+    to: SUPPORT_TICKET_TO,
+    replyTo: ticket.email,
+    subject,
+    text
+  });
+
+  return true;
+};
+
 app.get('/api/health', async (_req, res) => {
   try {
     await ensureDb();
@@ -404,6 +469,58 @@ app.get('/api/products/:id', async (req, res) => {
     if (!doc) return res.status(404).json({ message: 'Product not found' });
 
     return res.json({ item: normalizeProduct(doc) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/support/tickets', async (req, res) => {
+  try {
+    if (!USE_DB) {
+      return res.status(503).json({ message: 'Database is not configured for support tickets.' });
+    }
+
+    await ensureDb();
+    const payload = req.body || {};
+    const email = String(payload.email || '').trim().toLowerCase();
+    const serialNumber = String(payload.serialNumber || '').trim();
+    const category = String(payload.category || '').trim();
+    const priority = String(payload.priority || 'normal').trim().toLowerCase();
+    const description = String(payload.description || '').trim();
+    const attachmentNames = Array.isArray(payload.attachmentNames)
+      ? payload.attachmentNames.map((entry) => String(entry || '').trim()).filter(Boolean)
+      : [];
+
+    if (!email || !category || !description) {
+      return res.status(400).json({ message: 'Email, product category, and issue description are required.' });
+    }
+
+    if (!['normal', 'high', 'critical'].includes(priority)) {
+      return res.status(400).json({ message: 'Invalid priority value.' });
+    }
+
+    const ticket = await SupportTicket.create({
+      email,
+      serialNumber,
+      category,
+      priority,
+      description,
+      attachmentNames,
+      status: 'open'
+    });
+
+    let emailSent = false;
+    try {
+      emailSent = await sendTicketNotification(ticket);
+    } catch (mailError) {
+      // eslint-disable-next-line no-console
+      console.error('Support ticket email failed:', mailError.message);
+    }
+
+    return res.status(201).json({
+      item: ticket,
+      emailSent
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
