@@ -38,6 +38,7 @@ const supportTicketSchema = new mongoose.Schema(
     priority: { type: String, enum: ['normal', 'high', 'critical'], default: 'normal' },
     description: { type: String, required: true, trim: true },
     attachmentNames: { type: [String], default: [] },
+    attachmentUrls: { type: [String], default: [] },
     status: { type: String, default: 'open' }
   },
   {
@@ -554,6 +555,7 @@ app.post('/api/support/tickets', async (req, res) => {
     await ensureDb();
 
     const payload = req.body || {};
+
     const email = String(payload.email || '').trim().toLowerCase();
     const serialNumber = String(payload.serialNumber || '').trim();
     const category = String(payload.category || '').trim();
@@ -562,7 +564,11 @@ app.post('/api/support/tickets', async (req, res) => {
     const attachmentNames = Array.isArray(payload.attachmentNames)
       ? payload.attachmentNames.map((entry) => String(entry || '').trim()).filter(Boolean)
       : [];
+    const attachmentUrls = Array.isArray(payload.attachmentUrls)
+      ? payload.attachmentUrls.map((entry) => String(entry || '').trim()).filter(Boolean)
+      : [];
 
+    // Required validation
     if (!email || !category || !description) {
       return res.status(400).json({
         message: 'Email, product category, and issue description are required.'
@@ -580,31 +586,22 @@ app.post('/api/support/tickets', async (req, res) => {
       priority,
       description,
       attachmentNames,
+      attachmentUrls,
       status: 'open'
     });
 
-    let emailSent = false;
-    let emailError = null;
-
-    try {
-      await sendTicketNotification(ticket);
-      emailSent = true;
-    } catch (err) {
-      emailError = err.message;
-      console.error('Email failed:', err.message);
-    }
-
     return res.status(201).json({
-      item: ticket,
-      emailSent,
-      emailError
+      success: true,
+      item: ticket
     });
 
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 });
-
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`API running on http://localhost:${PORT}`);
