@@ -2,15 +2,16 @@ import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import Product from './models/Product.js';
+import SupportTicket from './models/SupportTicket.js';
+import adminRoutes from './routes/adminRoutes.js';
+import { ensureDb, USE_DB } from './utils/db.js';
+import { ensureDefaultAdmin } from './controllers/adminAuthController.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
-const MONGODB_URI = process.env.MONGODB_URI || '';
-const DB_NAME = process.env.DB_NAME || 'Extell';
-const COLLECTION_NAME = process.env.COLLECTION_NAME || 'Products';
-const SUPPORT_TICKETS_COLLECTION = process.env.SUPPORT_TICKETS_COLLECTION || 'SupportTickets';
 const SUPPORT_TICKET_TO = process.env.SUPPORT_TICKET_TO || 'yashijain935@gmail.com';
 const SMTP_HOST = process.env.SMTP_HOST || '';
 const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
@@ -27,27 +28,6 @@ const RESEND_FROM = process.env.RESEND_FROM || SMTP_FROM;
 
 app.use(cors());
 app.use(express.json());
-
-const productSchema = new mongoose.Schema({}, { strict: false, collection: COLLECTION_NAME });
-const Product = mongoose.models.Product || mongoose.model('Product', productSchema);
-const supportTicketSchema = new mongoose.Schema(
-  {
-    email: { type: String, required: true, trim: true, lowercase: true },
-    serialNumber: { type: String, default: '', trim: true },
-    category: { type: String, required: true, trim: true },
-    priority: { type: String, enum: ['normal', 'high', 'critical'], default: 'normal' },
-    description: { type: String, required: true, trim: true },
-    attachmentNames: { type: [String], default: [] },
-    attachmentUrls: { type: [String], default: [] },
-    status: { type: String, default: 'open' }
-  },
-  {
-    timestamps: true,
-    collection: SUPPORT_TICKETS_COLLECTION
-  }
-);
-const SupportTicket = mongoose.models.SupportTicket || mongoose.model('SupportTicket', supportTicketSchema);
-const USE_DB = Boolean(MONGODB_URI);
 const LIST_PROJECTION = {
   _id: 1,
   id: 1,
@@ -291,11 +271,7 @@ const applySort = (items, sortBy) => {
   }
 };
 
-const ensureDb = async () => {
-  if (!USE_DB) return;
-  if (mongoose.connection.readyState === 1) return;
-  await mongoose.connect(MONGODB_URI, { dbName: DB_NAME });
-};
+
 
 let supportTransportPromise;
 const createSupportTransport = async () => {
@@ -603,7 +579,10 @@ app.post('/api/support/tickets', async (req, res) => {
 
     const payload = req.body || {};
 
+    const name = String(payload.name || '').trim();
     const email = String(payload.email || '').trim().toLowerCase();
+    const subject = String(payload.subject || '').trim();
+    const message = String(payload.message || '').trim();
     const serialNumber = String(payload.serialNumber || '').trim();
     const category = String(payload.category || '').trim();
     const priority = String(payload.priority || 'normal').trim().toLowerCase();
@@ -627,7 +606,10 @@ app.post('/api/support/tickets', async (req, res) => {
     }
 
     const ticket = await SupportTicket.create({
+      name,
       email,
+      subject,
+      message: message || description,
       serialNumber,
       category,
       priority,
@@ -649,7 +631,14 @@ app.post('/api/support/tickets', async (req, res) => {
     });
   }
 });
+
+app.use('/api/admin', adminRoutes);
+
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`API running on http://localhost:${PORT}`);
+  ensureDefaultAdmin().catch((error) => {
+    // eslint-disable-next-line no-console
+    console.error('Failed to seed default admin:', error.message);
+  });
 });
