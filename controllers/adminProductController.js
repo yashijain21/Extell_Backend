@@ -54,7 +54,8 @@ export const listAdminProducts = async (req, res) => {
       ];
     }
 
-    const items = await Product.find(filter).sort({ createdAt: -1 }).lean();
+    // Use indexed sort to prevent MongoDB in-memory sort from exceeding 32MB
+    const items = await Product.find(filter).sort({ createdAt: -1, _id: -1 }).lean();
     return res.json({ items });
   } catch (error) {
     return res.status(500).json({ message: error.message });
