@@ -13,6 +13,7 @@ import { listSolutions, createSolution, updateSolution, deleteSolution } from '.
 import { listProjects, createProject, updateProject, deleteProject } from '../controllers/projectsController.js';
 import { listResources, createResource, deleteResource } from '../controllers/resourcesController.js';
 import { listTickets, updateTicketStatus } from '../controllers/ticketsController.js';
+import { listAdmins, createAdmin } from '../controllers/adminUserController.js';
 import { authMiddleware, roleMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -49,5 +50,8 @@ router.delete('/resources/:id', deleteResource);
 
 router.get('/tickets', listTickets);
 router.put('/tickets/:id/status', updateTicketStatus);
+
+router.get('/users', listAdmins);
+router.post('/users', createAdmin);
 
 export default router;
