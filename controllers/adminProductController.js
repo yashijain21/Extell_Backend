@@ -41,6 +41,9 @@ export const listAdminProducts = async (req, res) => {
     await ensureDb();
     const q = String(req.query.q || '').trim();
     const category = String(req.query.category || '').trim();
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '50', 10), 1), 200);
+    const skip = (page - 1) * limit;
 
     const filter = {};
     if (q) {
@@ -55,8 +58,17 @@ export const listAdminProducts = async (req, res) => {
     }
 
     // Use indexed sort to prevent MongoDB in-memory sort from exceeding 32MB
-    const items = await Product.find(filter).sort({ createdAt: -1, _id: -1 }).lean();
-    return res.json({ items });
+    const [items, total] = await Promise.all([
+      Product.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .allowDiskUse(true) // opt into external sort when needed
+        .lean(),
+      Product.countDocuments(filter)
+    ]);
+
+    return res.json({ items, total, page, limit });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
