@@ -13,6 +13,8 @@ import { listSolutions, createSolution, updateSolution, deleteSolution } from '.
 import { listProjects, createProject, updateProject, deleteProject } from '../controllers/projectsController.js';
 import { listResources, createResource, deleteResource } from '../controllers/resourcesController.js';
 import { listTickets, updateTicketStatus } from '../controllers/ticketsController.js';
+import { listWarrantyRegistrations, updateWarrantyStatus } from '../controllers/warrantyController.js';
+import { listQuoteRequests, updateQuoteStatus } from '../controllers/quoteController.js';
 import { listAdmins, createAdmin } from '../controllers/adminUserController.js';
 import { authMiddleware, roleMiddleware } from '../middleware/authMiddleware.js';
 
@@ -50,6 +52,12 @@ router.delete('/resources/:id', deleteResource);
 
 router.get('/tickets', listTickets);
 router.put('/tickets/:id/status', updateTicketStatus);
+
+router.get('/quotes', listQuoteRequests);
+router.put('/quotes/:id/status', updateQuoteStatus);
+
+router.get('/warranties', listWarrantyRegistrations);
+router.put('/warranties/:id/status', updateWarrantyStatus);
 
 router.get('/users', listAdmins);
 router.post('/users', createAdmin);

@@ -21,6 +21,8 @@ const mapPayloadToProduct = (payload = {}) => {
   const specifications = payload.specifications ?? payload.specs ?? payload.detailRows ?? {};
   const images = normalizeImageList(payload.images ?? payload.Images ?? []);
   const datasheet = payload.datasheet ?? payload.dataSheet ?? '';
+  const heroImage = payload.heroImage ?? payload.hero_image ?? payload.heroImageUrl ?? '';
+  const contactUrl = payload.contactUrl ?? payload.contact_url ?? '';
 
   const updateDoc = {
     ...payload,
@@ -30,7 +32,9 @@ const mapPayloadToProduct = (payload = {}) => {
     descriptionText: description,
     specs: specifications,
     Images: images,
-    datasheet: datasheet
+    datasheet: datasheet,
+    heroImage,
+    contactUrl
   };
 
   return updateDoc;

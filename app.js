@@ -7,6 +7,8 @@ import SupportTicket from './models/SupportTicket.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { ensureDb, USE_DB } from './utils/db.js';
 import { ensureDefaultAdmin } from './controllers/adminAuthController.js';
+import { createWarrantyRegistration } from './controllers/warrantyController.js';
+import { createQuoteRequest } from './controllers/quoteController.js';
 
 dotenv.config();
 
@@ -567,6 +569,30 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
+app.post('/api/warranty/register', async (req, res) => {
+  try {
+    if (!USE_DB) {
+      return res.status(503).json({ message: 'Database is not configured for warranty registrations.' });
+    }
+
+    return createWarrantyRegistration(req, res);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/quotes', async (req, res) => {
+  try {
+    if (!USE_DB) {
+      return res.status(503).json({ message: 'Database is not configured for quote requests.' });
+    }
+
+    await ensureDb();
+    return createQuoteRequest(req, res);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
 app.post('/api/support/tickets', async (req, res) => {
   try {
     if (!USE_DB) {
@@ -642,3 +668,5 @@ app.listen(PORT, () => {
     console.error('Failed to seed default admin:', error.message);
   });
 });
+
+
