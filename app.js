@@ -48,8 +48,13 @@ const LIST_PROJECTION = {
   descriptionText: 1,
   specs: 1,
   detailRows: 1,
+  infoSections: 1,
   features: 1,
   datasheet: 1,
+  downloadUrl: 1,
+  certificationUrl: 1,
+  infoPdfUrl: 1,
+  contactUrl: 1,
   createdAt: 1
 };
 
