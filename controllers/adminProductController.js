@@ -14,11 +14,44 @@ const normalizeImageList = (value) => {
   return [];
 };
 
+const normalizeFeatures = (value) => {
+  if (!value) return [];
+
+  // Already object shaped
+  if (Array.isArray(value) && value.every((item) => item && typeof item === 'object')) {
+    return value
+      .map((item) => ({
+        title: String(item.title || item.name || '').trim(),
+        detail: String(item.detail || item.description || '').trim()
+      }))
+      .filter((item) => item.title || item.detail);
+  }
+
+  // Array of strings
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+      .map((title) => ({ title, detail: '' }));
+  }
+
+  // Comma-separated string
+  if (typeof value === "string") {
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((title) => ({ title, detail: '' }));
+  }
+  return [];
+};
+
 const mapPayloadToProduct = (payload = {}) => {
   const name = payload.name ?? payload.Name ?? '';
   const category = payload.category ?? payload.Categories ?? '';
   const description = payload.description ?? payload.descriptionText ?? '';
   const specifications = payload.specifications ?? payload.specs ?? payload.detailRows ?? {};
+  const features = normalizeFeatures(payload.features ?? payload.Features ?? []);
   const images = normalizeImageList(payload.images ?? payload.Images ?? []);
   const datasheet = payload.datasheet ?? payload.dataSheet ?? '';
   const heroImage = payload.heroImage ?? payload.hero_image ?? payload.heroImageUrl ?? '';
@@ -31,6 +64,7 @@ const mapPayloadToProduct = (payload = {}) => {
     Categories: payload.Categories || payload.category || payload.Categories || category,
     descriptionText: description,
     specs: specifications,
+    features,
     Images: images,
     datasheet: datasheet,
     heroImage,
@@ -61,7 +95,7 @@ export const listAdminProducts = async (req, res) => {
       ];
     }
 
-    // Use indexed sort to prevent MongoDB in-memory sort from exceeding 32MB
+    // Use indexed sort to prevent MongoDB in-memory sorts from exceeding 32MB
     const [items, total] = await Promise.all([
       Product.find(filter)
         .sort({ createdAt: -1, _id: -1 })
@@ -114,7 +148,7 @@ export const deleteAdminProduct = async (req, res) => {
     const { id } = req.params;
     const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
     const removed = await Product.findOneAndDelete(query).lean();
-    if (!removed) return res.status(404).json({ message: 'Product not found.' });
+    if (!removed) return res.status(404) .json({ message: 'Product not found.' });
     return res.json({ success: true });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -142,3 +176,4 @@ export const listAdminCategories = async (_req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
