@@ -1,11 +1,11 @@
-import mongoose from 'mongoose';
-import Product from '../models/Product.js';
-import { ensureDb } from '../utils/db.js';
+import mongoose from "mongoose";
+import Product from "../models/Product.js";
+import { ensureDb } from "../utils/db.js";
 
 const normalizeImageList = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value.map((entry) => String(entry || '').trim()).filter(Boolean);
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value
       .split(',')
       .map((entry) => entry.trim())
@@ -124,9 +124,20 @@ export const deleteAdminProduct = async (req, res) => {
 export const listAdminCategories = async (_req, res) => {
   try {
     await ensureDb();
-    const categories = await Product.distinct('category');
-    const normalized = categories && categories.length ? categories : await Product.distinct('Categories');
-    return res.json({ items: (normalized || []).filter(Boolean) });
+    // Combine categories from both modern `category` and legacy `Categories` fields,
+    // then deduplicate and sort for consistent dropdown display.
+    const [primary, legacy] = await Promise.all([
+      Product.distinct('category'),
+      Product.distinct('Categories')
+    ]);
+
+    const merged = [...primary, ...legacy]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean);
+
+    const unique = Array.from(new Set(merged)).sort((a, b) => a.localeCompare(b));
+
+    return res.json({ items: unique });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
