@@ -48,18 +48,29 @@ const normalizeFeatures = (value) => {
 
 const mapPayloadToProduct = (payload = {}) => {
   const name = payload.name ?? payload.Name ?? '';
+  const sku = payload.sku ?? payload.SKU ?? payload.id ?? '';
+  const modelNumber =
+    payload.modelNumber ??
+    payload.ModelNumber ??
+    payload.model_number ??
+    payload.modelNo ??
+    '';
   const category = payload.category ?? payload.Categories ?? '';
   const description = payload.description ?? payload.descriptionText ?? '';
   const specifications = payload.specifications ?? payload.specs ?? payload.detailRows ?? {};
   const features = normalizeFeatures(payload.features ?? payload.Features ?? []);
   const images = normalizeImageList(payload.images ?? payload.Images ?? []);
-  const datasheet = payload.datasheet ?? payload.dataSheet ?? '';
+  const datasheet = payload.datasheet ?? payload.dataSheet ?? payload.Datasheet ?? '';
   const heroImage = payload.heroImage ?? payload.hero_image ?? payload.heroImageUrl ?? '';
   const contactUrl = payload.contactUrl ?? payload.contact_url ?? '';
 
   const updateDoc = {
     ...payload,
     Name: name,
+    SKU: sku,
+    sku: sku,
+    modelNumber,
+    ModelNumber: modelNumber,
     category: category,
     Categories: payload.Categories || payload.category || payload.Categories || category,
     descriptionText: description,
@@ -67,6 +78,7 @@ const mapPayloadToProduct = (payload = {}) => {
     features,
     Images: images,
     datasheet: datasheet,
+    Datasheet: datasheet,
     heroImage,
     contactUrl
   };
@@ -86,7 +98,13 @@ export const listAdminProducts = async (req, res) => {
     const filter = {};
     if (q) {
       const regex = new RegExp(q, 'i');
-      filter.$or = [{ Name: regex }, { SKU: regex }, { descriptionText: regex }];
+      filter.$or = [
+        { Name: regex },
+        { SKU: regex },
+        { modelNumber: regex },
+        { ModelNumber: regex },
+        { descriptionText: regex }
+      ];
     }
     if (category) {
       filter.$or = [
@@ -176,4 +194,5 @@ export const listAdminCategories = async (_req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
 

@@ -344,6 +344,7 @@ const sendTicketNotification = async (ticket) => {
     'A new support ticket has been submitted.',
     `Ticket ID: ${ticket._id}`,
     `Email: ${ticket.email}`,
+    `Mobile: ${ticket.mobile || 'N/A'}`,
     `Serial Number: ${ticket.serialNumber || 'N/A'}`,
     `Category: ${ticket.category}`,
     `Priority: ${ticket.priority}`,
@@ -612,6 +613,7 @@ app.post('/api/support/tickets', async (req, res) => {
 
     const name = String(payload.name || '').trim();
     const email = String(payload.email || '').trim().toLowerCase();
+    const mobile = String(payload.mobile || '').trim();
     const subject = String(payload.subject || '').trim();
     const message = String(payload.message || '').trim();
     const serialNumber = String(payload.serialNumber || '').trim();
@@ -626,9 +628,9 @@ app.post('/api/support/tickets', async (req, res) => {
       : [];
 
     // Required validation
-    if (!email || !category || !description) {
+    if (!email || !mobile || !category || !description) {
       return res.status(400).json({
-        message: 'Email, product category, and issue description are required.'
+        message: 'Email, mobile number, product category, and issue description are required.'
       });
     }
 
@@ -639,6 +641,7 @@ app.post('/api/support/tickets', async (req, res) => {
     const ticket = await SupportTicket.create({
       name,
       email,
+      mobile,
       subject,
       message: message || description,
       serialNumber,

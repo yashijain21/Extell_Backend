@@ -6,6 +6,7 @@ const supportTicketSchema = new mongoose.Schema(
   {
     name: { type: String, default: '', trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
+    mobile: { type: String, required: true, trim: true },
     subject: { type: String, default: '', trim: true },
     message: { type: String, default: '', trim: true },
     serialNumber: { type: String, default: '', trim: true },
