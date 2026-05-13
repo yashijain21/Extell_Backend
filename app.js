@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import Product from './models/Product.js';
+import Category from './models/Category.js';
 import SupportTicket from './models/SupportTicket.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { ensureDb, USE_DB } from './utils/db.js';
@@ -263,6 +264,47 @@ const buildSupportCategoryHierarchy = (docs = []) => {
   return sortCategories(groups);
 };
 
+const buildCategoryTreeFromCollection = (docs = []) => {
+  const tree = {};
+  const items = docs.map((doc) => ({
+    name: String(doc.name || '').trim(),
+    slug: String(doc.slug || '').trim()
+  }))
+  .filter((item) => item.name && item.slug)
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+  docs.forEach((doc) => {
+    const root = String(doc.name || '').trim();
+    if (!root) return;
+
+    const level1 = [];
+    const level2 = {};
+    const level3 = {};
+
+    const first = Array.isArray(doc.subcategories) ? doc.subcategories : [];
+    first.forEach((node) => {
+      const l1 = String(node?.name || '').trim();
+      if (!l1) return;
+      level1.push(l1);
+
+      const second = Array.isArray(node?.children) ? node.children : [];
+      level2[l1] = second.map((entry) => String(entry?.name || '').trim()).filter(Boolean);
+
+      second.forEach((entry) => {
+        const l2 = String(entry?.name || '').trim();
+        if (!l2) return;
+        const key = `${l1} > ${l2}`;
+        const third = Array.isArray(entry?.children) ? entry.children : [];
+        level3[key] = third.map((child) => String(child?.name || '').trim()).filter(Boolean);
+      });
+    });
+
+    tree[root] = { level1, level2, level3 };
+  });
+
+  return { items, tree };
+};
+
 const applySort = (items, sortBy) => {
   const list = [...items];
   switch (sortBy) {
@@ -400,9 +442,9 @@ app.get('/api/health', async (_req, res) => {
 app.get('/api/categories', async (_req, res) => {
   try {
     await ensureDb();
-    const docs = USE_DB ? await Product.find({}, { Categories: 1, category: 1 }, { maxTimeMS: 12000 }).lean() : fallbackProducts;
-    const normalized = docs.map(normalizeProduct);
-    return res.json({ items: buildCategoryBuckets(normalized) });
+    if (!USE_DB) return res.json({ items: [], tree: {} });
+    const docs = await Category.find({}, { name: 1, slug: 1, subcategories: 1 }, { maxTimeMS: 12000 }).lean();
+    return res.json(buildCategoryTreeFromCollection(docs));
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
