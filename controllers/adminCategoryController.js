@@ -1,5 +1,4 @@
 import Category from '../models/Category.js';
-import Product from '../models/Product.js';
 import { ensureDb } from '../utils/db.js';
 
 const slugify = (value = '') =>
@@ -59,18 +58,22 @@ export const listAdminCategories = async (_req, res) => {
   try {
     await ensureDb();
     const docs = await Category.find({}).sort({ name: 1 }).lean();
+    return res.json({
+      ...buildTreePayload(docs),
+      records: docs
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
-    if (docs.length) {
-      return res.json(buildTreePayload(docs));
-    }
-
-    // Fallback for existing setups before categories are seeded.
-    const [primary, legacy] = await Promise.all([Product.distinct('category'), Product.distinct('Categories')]);
-    const merged = [...primary, ...legacy]
-      .map((value) => String(value || '').trim())
-      .filter(Boolean);
-    const unique = Array.from(new Set(merged)).sort((a, b) => a.localeCompare(b));
-    return res.json({ items: unique, tree: {} });
+export const getAdminCategoryById = async (req, res) => {
+  try {
+    await ensureDb();
+    const { id } = req.params;
+    const item = await Category.findById(id).lean();
+    if (!item) return res.status(404).json({ message: 'Category not found.' });
+    return res.json({ item });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

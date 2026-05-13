@@ -68,7 +68,7 @@ const mapPayloadToProduct = (payload = {}) => {
     '';
   const rawCategory = payload.category ?? payload.Categories ?? '';
   const parsedPath = splitCategoryPath(rawCategory);
-  const category = String(payload.category ?? parsedPath[0] ?? '').trim();
+  const category = String(payload.rootCategory ?? parsedPath[0] ?? '').trim();
   const subCategory1 = String(payload.subCategory1 ?? parsedPath[1] ?? '').trim();
   const subCategory2 = String(payload.subCategory2 ?? parsedPath[2] ?? '').trim();
   const subCategory3 = String(payload.subCategory3 ?? parsedPath[3] ?? '').trim();

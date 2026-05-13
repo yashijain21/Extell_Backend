@@ -10,6 +10,7 @@ import {
 } from '../controllers/adminProductController.js';
 import {
   listAdminCategories,
+  getAdminCategoryById,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory
@@ -40,6 +41,7 @@ router.post('/products', createAdminProduct);
 router.put('/products/:id', updateAdminProduct);
 router.delete('/products/:id', deleteAdminProduct);
 router.get('/categories', listAdminCategories);
+router.get('/categories/:id', getAdminCategoryById);
 router.post('/categories', createAdminCategory);
 router.put('/categories/:id', updateAdminCategory);
 router.delete('/categories/:id', deleteAdminCategory);
