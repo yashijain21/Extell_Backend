@@ -57,6 +57,17 @@ const normalizeFeatures = (value) => {
   return [];
 };
 
+const toBool = (value) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value === 'string') {
+    const lowered = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'y', 'on'].includes(lowered)) return true;
+    if (['false', '0', 'no', 'n', 'off'].includes(lowered)) return false;
+  }
+  return Boolean(value);
+};
+
 const mapPayloadToProduct = (payload = {}) => {
   const name = payload.name ?? payload.Name ?? '';
   const sku = payload.sku ?? payload.SKU ?? payload.id ?? '';
@@ -81,6 +92,7 @@ const mapPayloadToProduct = (payload = {}) => {
   const datasheet = payload.datasheet ?? payload.dataSheet ?? payload.Datasheet ?? '';
   const heroImage = payload.heroImage ?? payload.hero_image ?? payload.heroImageUrl ?? '';
   const contactUrl = payload.contactUrl ?? payload.contact_url ?? '';
+  const isFeatured = toBool(payload.isFeatured ?? payload['Is featured?'] ?? payload.featured ?? false);
 
   const updateDoc = {
     ...payload,
@@ -101,7 +113,10 @@ const mapPayloadToProduct = (payload = {}) => {
     datasheet: datasheet,
     Datasheet: datasheet,
     heroImage,
-    contactUrl
+    contactUrl,
+    isFeatured,
+    featured: isFeatured,
+    'Is featured?': isFeatured ? 1 : 0
   };
 
   return updateDoc;
