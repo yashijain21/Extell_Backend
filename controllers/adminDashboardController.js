@@ -1,16 +1,9 @@
 import Product from '../models/Product.js';
+import Category from '../models/Category.js';
 import SupportTicket from '../models/SupportTicket.js';
 import WarrantyRegistration from '../models/WarrantyRegistration.js';
 import QuoteRequest from '../models/QuoteRequest.js';
 import { ensureDb, USE_DB } from '../utils/db.js';
-
-const getDistinctCategories = async () => {
-  const categories = await Product.distinct('category');
-  if (categories && categories.length) return categories;
-
-  const fallback = await Product.distinct('Categories');
-  return (fallback || []).filter(Boolean);
-};
 
 export const getDashboardStats = async (_req, res) => {
   try {
@@ -37,7 +30,7 @@ export const getDashboardStats = async (_req, res) => {
       QuoteRequest.estimatedDocumentCount()
     ]);
 
-    const categories = await getDistinctCategories();
+    const totalCategories = await Category.countDocuments();
 
     const categoryStats = await Product.aggregate([
       {
@@ -91,7 +84,7 @@ export const getDashboardStats = async (_req, res) => {
 
     return res.json({
       totalProducts: totalProducts || 0,
-      totalCategories: categories.length,
+      totalCategories: totalCategories || 0,
       totalTickets: totalTickets || 0,
       totalQuotes: totalQuotes || 0,
       totalWarranties: totalWarranties || 0,
