@@ -6,9 +6,14 @@ import {
   listAdminProducts,
   createAdminProduct,
   updateAdminProduct,
-  deleteAdminProduct,
-  listAdminCategories
+  deleteAdminProduct
 } from '../controllers/adminProductController.js';
+import {
+  listAdminCategories,
+  createAdminCategory,
+  updateAdminCategory,
+  deleteAdminCategory
+} from '../controllers/adminCategoryController.js';
 import { listSolutions, createSolution, updateSolution, deleteSolution } from '../controllers/solutionsController.js';
 import { listProjects, createProject, updateProject, deleteProject } from '../controllers/projectsController.js';
 import { listResources, createResource, deleteResource } from '../controllers/resourcesController.js';
@@ -35,6 +40,9 @@ router.post('/products', createAdminProduct);
 router.put('/products/:id', updateAdminProduct);
 router.delete('/products/:id', deleteAdminProduct);
 router.get('/categories', listAdminCategories);
+router.post('/categories', createAdminCategory);
+router.put('/categories/:id', updateAdminCategory);
+router.delete('/categories/:id', deleteAdminCategory);
 
 router.get('/solutions', listSolutions);
 router.post('/solutions', createSolution);
