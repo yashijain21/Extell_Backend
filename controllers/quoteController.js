@@ -113,7 +113,9 @@ const sendQuoteNotification = async (quote) => {
     }
   }
 
-  if (!RESEND_API_KEY) return false;
+  if (!RESEND_API_KEY) {
+    throw new Error('No mail provider configured. Set SMTP_* values or RESEND_API_KEY.');
+  }
   await sendQuoteViaResend({
     subject,
     text,
@@ -152,11 +154,23 @@ export const createQuoteRequest = async (req, res) => {
       status: 'new'
     });
 
-    const mailSent = await sendQuoteNotification(item).catch(() => false);
+    let mailSent = false;
+    let mailError = '';
+    try {
+      mailSent = await sendQuoteNotification(item);
+      if (!mailSent) {
+        mailError = 'Quote saved, but email notification was not sent.';
+      }
+    } catch (notifyError) {
+      mailSent = false;
+      mailError = notifyError?.message || 'Quote saved, but email notification failed.';
+    }
+
     return res.status(201).json({
       success: true,
       item,
-      mailSent
+      mailSent,
+      mailError
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

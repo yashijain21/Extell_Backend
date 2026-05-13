@@ -2,6 +2,17 @@ import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import { ensureDb } from "../utils/db.js";
 
+const splitCategoryPath = (value) =>
+  String(value || '')
+    .split('>')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+const buildCategoryPath = ({ category = '', subCategory1 = '', subCategory2 = '', subCategory3 = '' }) =>
+  [category, subCategory1, subCategory2, subCategory3]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean);
+
 const normalizeImageList = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value.map((entry) => String(entry || '').trim()).filter(Boolean);
@@ -55,7 +66,14 @@ const mapPayloadToProduct = (payload = {}) => {
     payload.model_number ??
     payload.modelNo ??
     '';
-  const category = payload.category ?? payload.Categories ?? '';
+  const rawCategory = payload.category ?? payload.Categories ?? '';
+  const parsedPath = splitCategoryPath(rawCategory);
+  const category = String(payload.category ?? parsedPath[0] ?? '').trim();
+  const subCategory1 = String(payload.subCategory1 ?? parsedPath[1] ?? '').trim();
+  const subCategory2 = String(payload.subCategory2 ?? parsedPath[2] ?? '').trim();
+  const subCategory3 = String(payload.subCategory3 ?? parsedPath[3] ?? '').trim();
+  const categoryPath = buildCategoryPath({ category, subCategory1, subCategory2, subCategory3 });
+  const categoryString = categoryPath.join(' > ');
   const description = payload.description ?? payload.descriptionText ?? '';
   const specifications = payload.specifications ?? payload.specs ?? payload.detailRows ?? {};
   const features = normalizeFeatures(payload.features ?? payload.Features ?? []);
@@ -71,8 +89,11 @@ const mapPayloadToProduct = (payload = {}) => {
     sku: sku,
     modelNumber,
     ModelNumber: modelNumber,
-    category: category,
-    Categories: payload.Categories || payload.category || payload.Categories || category,
+    category: categoryString,
+    Categories: categoryString,
+    subCategory1,
+    subCategory2,
+    subCategory3,
     descriptionText: description,
     specs: specifications,
     features,
@@ -91,6 +112,9 @@ export const listAdminProducts = async (req, res) => {
     await ensureDb();
     const q = String(req.query.q || '').trim();
     const category = String(req.query.category || '').trim();
+    const subCategory1 = String(req.query.subCategory1 || '').trim();
+    const subCategory2 = String(req.query.subCategory2 || '').trim();
+    const subCategory3 = String(req.query.subCategory3 || '').trim();
     const page = Math.max(parseInt(req.query.page || '1', 10), 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit || '50', 10), 1), 200);
     const skip = (page - 1) * limit;
@@ -112,6 +136,9 @@ export const listAdminProducts = async (req, res) => {
         { Categories: new RegExp(category, 'i') }
       ];
     }
+    if (subCategory1) filter.subCategory1 = subCategory1;
+    if (subCategory2) filter.subCategory2 = subCategory2;
+    if (subCategory3) filter.subCategory3 = subCategory3;
 
     // Use indexed sort to prevent MongoDB in-memory sorts from exceeding 32MB
     const [items, total] = await Promise.all([
