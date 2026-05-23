@@ -155,18 +155,20 @@ export const listAdminProducts = async (req, res) => {
     if (subCategory2) filter.subCategory2 = subCategory2;
     if (subCategory3) filter.subCategory3 = subCategory3;
 
-    const [result] = await Product.aggregate([
-      { $match: filter },
-      { $sort: { createdAt: -1, _id: -1 } },
-      {
-        $facet: {
-          items: [{ $skip: skip }, { $limit: limit }],
-          totalCount: [{ $count: 'count' }]
+    const cursor = Product.collection.aggregate(
+      [
+        { $match: filter },
+        { $sort: { createdAt: -1, _id: -1 } },
+        {
+          $facet: {
+            items: [{ $skip: skip }, { $limit: limit }],
+            totalCount: [{ $count: 'count' }]
+          }
         }
-      }
-    ])
-      .allowDiskUse(true)
-      .exec();
+      ],
+      { allowDiskUse: true, maxTimeMS: 20000 }
+    );
+    const [result] = await cursor.toArray();
 
     const items = result?.items || [];
     const total = result?.totalCount?.[0]?.count || 0;
