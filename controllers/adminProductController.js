@@ -155,23 +155,15 @@ export const listAdminProducts = async (req, res) => {
     if (subCategory2) filter.subCategory2 = subCategory2;
     if (subCategory3) filter.subCategory3 = subCategory3;
 
-    const cursor = Product.collection.aggregate(
-      [
-        { $match: filter },
-        { $sort: { createdAt: -1, _id: -1 } },
-        {
-          $facet: {
-            items: [{ $skip: skip }, { $limit: limit }],
-            totalCount: [{ $count: 'count' }]
-          }
-        }
-      ],
-      { allowDiskUse: true, maxTimeMS: 20000 }
-    );
-    const [result] = await cursor.toArray();
-
-    const items = result?.items || [];
-    const total = result?.totalCount?.[0]?.count || 0;
+    const [items, total] = await Promise.all([
+      Product.find(filter)
+        // `_id` is always indexed, so this avoids expensive memory sorts.
+        .sort({ _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Product.countDocuments(filter)
+    ]);
 
     return res.json({ items, total, page, limit });
   } catch (error) {
