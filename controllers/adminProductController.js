@@ -155,16 +155,21 @@ export const listAdminProducts = async (req, res) => {
     if (subCategory2) filter.subCategory2 = subCategory2;
     if (subCategory3) filter.subCategory3 = subCategory3;
 
-    // Use indexed sort to prevent MongoDB in-memory sorts from exceeding 32MB
-    const [items, total] = await Promise.all([
-      Product.find(filter)
-        .sort({ createdAt: -1, _id: -1 })
-        .skip(skip)
-        .limit(limit)
-        .allowDiskUse(true) // opt into external sort when needed
-        .lean(),
-      Product.countDocuments(filter)
-    ]);
+    const [result] = await Product.aggregate([
+      { $match: filter },
+      { $sort: { createdAt: -1, _id: -1 } },
+      {
+        $facet: {
+          items: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: 'count' }]
+        }
+      }
+    ])
+      .allowDiskUse(true)
+      .exec();
+
+    const items = result?.items || [];
+    const total = result?.totalCount?.[0]?.count || 0;
 
     return res.json({ items, total, page, limit });
   } catch (error) {
