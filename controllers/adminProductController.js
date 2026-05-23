@@ -134,26 +134,33 @@ export const listAdminProducts = async (req, res) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit || '50', 10), 1), 200);
     const skip = (page - 1) * limit;
 
-    const filter = {};
+    const andFilters = [];
+
     if (q) {
       const regex = new RegExp(q, 'i');
-      filter.$or = [
-        { Name: regex },
-        { SKU: regex },
-        { modelNumber: regex },
-        { ModelNumber: regex },
-        { descriptionText: regex }
-      ];
+      andFilters.push({
+        $or: [
+          { Name: regex },
+          { SKU: regex },
+          { modelNumber: regex },
+          { ModelNumber: regex },
+          { descriptionText: regex }
+        ]
+      });
     }
     if (category) {
-      filter.$or = [
-        { category: category },
-        { Categories: new RegExp(category, 'i') }
-      ];
+      andFilters.push({
+        $or: [
+          { category: category },
+          { Categories: new RegExp(category, 'i') }
+        ]
+      });
     }
-    if (subCategory1) filter.subCategory1 = subCategory1;
-    if (subCategory2) filter.subCategory2 = subCategory2;
-    if (subCategory3) filter.subCategory3 = subCategory3;
+    if (subCategory1) andFilters.push({ subCategory1 });
+    if (subCategory2) andFilters.push({ subCategory2 });
+    if (subCategory3) andFilters.push({ subCategory3 });
+
+    const filter = andFilters.length ? { $and: andFilters } : {};
 
     const [items, total] = await Promise.all([
       Product.find(filter)
