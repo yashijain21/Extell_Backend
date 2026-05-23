@@ -31,6 +31,23 @@ const RESEND_FROM = process.env.RESEND_FROM || SMTP_FROM;
 
 app.use(cors());
 app.use(express.json());
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https:; frame-src https://www.googletagmanager.com;"
+  );
+  next();
+});
+
+const setPublicApiCache = (res, seconds = 300) => {
+  res.setHeader('Cache-Control', `public, max-age=${seconds}, stale-while-revalidate=120`);
+};
 const LIST_PROJECTION = {
   _id: 1,
   id: 1,
@@ -179,6 +196,13 @@ const parseImageList = (doc) => {
   }
   return [];
 };
+
+const parseCategoryPath = (rawValue = '') =>
+  String(rawValue || '')
+    .replace(/>/g, ',')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
 
 const toBool = (value) => {
   if (value === true || value === false) return value;
@@ -442,6 +466,7 @@ app.get('/api/health', async (_req, res) => {
 app.get('/api/categories', async (_req, res) => {
   try {
     await ensureDb();
+    setPublicApiCache(res, 900);
     if (!USE_DB) return res.json({ items: [], tree: {} });
     const docs = await Category.find({}, { name: 1, slug: 1, subcategories: 1 }, { maxTimeMS: 12000 }).lean();
     return res.json(buildCategoryTreeFromCollection(docs));
@@ -453,6 +478,7 @@ app.get('/api/categories', async (_req, res) => {
 app.get('/api/support/categories', async (_req, res) => {
   try {
     await ensureDb();
+    setPublicApiCache(res, 600);
     const docs = USE_DB
       ? await Product.find({}, { Categories: 1, category: 1 }, { maxTimeMS: 12000 }).lean()
       : fallbackProducts;
@@ -466,6 +492,7 @@ app.get('/api/support/categories', async (_req, res) => {
 app.get('/api/products/grouped-by-category', async (req, res) => {
   try {
     await ensureDb();
+    setPublicApiCache(res, 300);
     const q = String(req.query.q || '').trim();
     const docs = USE_DB
       ? await Product.find(
@@ -501,6 +528,7 @@ app.get('/api/products/grouped-by-category', async (req, res) => {
 app.get('/api/products', async (req, res) => {
   try {
     await ensureDb();
+    setPublicApiCache(res, 180);
 
     const q = String(req.query.q || '').trim();
     const category = String(req.query.category || '').trim();
@@ -508,6 +536,9 @@ app.get('/api/products', async (req, res) => {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.max(1, Math.min(60, Number(req.query.limit) || 12));
     const type = String(req.query.type || '').trim();
+    const sub1 = String(req.query.sub1 || req.query.subCategory || '').trim();
+    const sub2 = String(req.query.sub2 || '').trim();
+    const sub3 = String(req.query.sub3 || '').trim();
     const inStock = toBool(req.query.inStock);
     const featured = toBool(req.query.featured);
     const published = toBool(req.query.published);
@@ -540,6 +571,18 @@ app.get('/api/products', async (req, res) => {
           slugify(item.Categories || '').includes(categorySlug)
       );
     }
+    if (sub1 || sub2 || sub3) {
+      items = items.filter((item) => {
+        const path = parseCategoryPath(item.Categories || item.category || '');
+        const p1 = slugify(path[1] || item.subCategory1 || '');
+        const p2 = slugify(path[2] || item.subCategory2 || '');
+        const p3 = slugify(path[3] || item.subCategory3 || '');
+        if (sub1 && p1 !== slugify(sub1)) return false;
+        if (sub2 && p2 !== slugify(sub2)) return false;
+        if (sub3 && p3 !== slugify(sub3)) return false;
+        return true;
+      });
+    }
 
     const sorted = applySort(items, sortBy);
     const total = sorted.length;
@@ -570,6 +613,7 @@ app.get('/api/products', async (req, res) => {
 app.get('/api/products/slug/:slug', async (req, res) => {
   try {
     await ensureDb();
+    setPublicApiCache(res, 300);
     const { slug } = req.params;
     const normalizedSlug = slugify(slug);
     const normalizedLegacySlug = slugifyLegacy(slug);
@@ -599,6 +643,7 @@ app.get('/api/products/slug/:slug', async (req, res) => {
 app.get('/api/products/:id', async (req, res) => {
   try {
     await ensureDb();
+    setPublicApiCache(res, 300);
     const { id } = req.params;
 
     const queryCandidates = [{ id }, { SKU: id }, { ID: Number.isNaN(Number(id)) ? id : Number(id) }];
