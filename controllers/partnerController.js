@@ -4,7 +4,7 @@ import PartnerQuote from '../models/PartnerQuote.js';
 import Product from '../models/Product.js';
 import PartnerUser from '../models/PartnerUser.js';
 import { ensureDb } from '../utils/db.js';
-import { buildPartnerQuote } from '../services/partnerQuoteService.js';
+import { buildPartnerQuote, buildPartnerQuoteSlip } from '../services/partnerQuoteService.js';
 
 export const listPartnerProducts = async (req, res) => {
   try {
@@ -63,7 +63,13 @@ export const createPartnerQuote = async (req, res) => {
       markupPercentOverride: partner.partnerMarkupPercent
     });
 
-    return res.status(201).json({ success: true, data: { quote } });
+    return res.status(201).json({
+      success: true,
+      data: {
+        quote,
+        slip: buildPartnerQuoteSlip(quote, { label: 'Partner Payment Slip' })
+      }
+    });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }

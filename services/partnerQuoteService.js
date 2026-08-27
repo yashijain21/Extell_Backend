@@ -56,7 +56,34 @@ const validatePartnerQuotePayload = (payload = {}) => {
   };
 };
 
-export const buildPartnerQuote = async ({ partnerId, createdBy, payload = {}, markupPercentOverride }) => {
+const buildPartnerQuoteSlip = (quote, { label = 'Payment Slip' } = {}) => ({
+  slipNumber: quote.quoteNumber,
+  label,
+  partnerId: quote.partnerId,
+  quoteId: quote._id,
+  quoteNumber: quote.quoteNumber,
+  customerName: quote.customerName,
+  companyName: quote.companyName,
+  currency: quote.currency,
+  items: (quote.items || []).map((item) => ({
+    productId: item.productId || null,
+    productName: item.productName,
+    sku: item.sku,
+    unitPrice: item.unitPrice,
+    quantity: item.quantity,
+    lineTotal: item.lineTotal,
+    amountDue: item.lineTotal
+  })),
+  subtotal: quote.subtotal,
+  markupPercent: quote.markupPercent,
+  markupAmount: quote.markupAmount,
+  total: quote.total,
+  amountDue: quote.total,
+  status: 'awaiting_payment',
+  generatedAt: quote.createdAt || new Date()
+});
+
+const preparePartnerQuoteData = async ({ partnerId, payload = {}, markupPercentOverride }) => {
   if (!mongoose.Types.ObjectId.isValid(String(partnerId || ''))) {
     throw new Error('Invalid partner reference.');
   }
@@ -67,7 +94,6 @@ export const buildPartnerQuote = async ({ partnerId, createdBy, payload = {}, ma
   }
 
   const parsed = validatePartnerQuotePayload(payload);
-  const quoteNumber = await generateQuoteNumber();
   const markupPercent = toNumber(
     markupPercentOverride ?? payload.markupPercent ?? partner.partnerMarkupPercent ?? 0,
     0
@@ -89,6 +115,23 @@ export const buildPartnerQuote = async ({ partnerId, createdBy, payload = {}, ma
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const markupAmount = subtotal * (markupPercent / 100);
   const total = subtotal + markupAmount;
+
+  return {
+    partner,
+    parsed,
+    markupPercent,
+    items,
+    subtotal: Number(subtotal.toFixed(2)),
+    markupAmount: Number(markupAmount.toFixed(2)),
+    total: Number(total.toFixed(2))
+  };
+};
+
+export const buildPartnerQuote = async ({ partnerId, createdBy, payload = {}, markupPercentOverride }) => {
+  const { parsed, markupPercent, items, subtotal, markupAmount, total } =
+    await preparePartnerQuoteData({ partnerId, payload, markupPercentOverride });
+
+  const quoteNumber = await generateQuoteNumber();
 
   const quote = await PartnerQuote.create({
     partnerId,
@@ -125,4 +168,46 @@ export const buildPartnerQuote = async ({ partnerId, createdBy, payload = {}, ma
   return quote;
 };
 
+export const previewPartnerQuote = async ({ partnerId, payload = {}, markupPercentOverride }) => {
+  const { parsed, markupPercent, items, subtotal, markupAmount, total, partner } =
+    await preparePartnerQuoteData({ partnerId, payload, markupPercentOverride });
+
+  const quoteNumber = await generateQuoteNumber();
+
+  return {
+    partnerId: partner._id,
+    quoteNumber,
+    customerName: parsed.customerName,
+    customerEmail: parsed.customerEmail,
+    customerPhone: parsed.customerPhone,
+    companyName: parsed.companyName,
+    items,
+    subtotal,
+    markupPercent,
+    markupAmount,
+    total,
+    currency: parsed.currency,
+    status: parsed.status,
+    slip: buildPartnerQuoteSlip(
+      {
+        _id: null,
+        partnerId: partner._id,
+        quoteNumber,
+        customerName: parsed.customerName,
+        companyName: parsed.companyName,
+        items,
+        subtotal,
+        markupPercent,
+        markupAmount,
+        total,
+        currency: parsed.currency,
+        createdAt: new Date()
+      },
+      { label: 'Partner Payment Slip' }
+    )
+  };
+};
+
 export const listPartnerQuotesWithItems = async (filter = {}) => PartnerQuote.find(filter).sort({ createdAt: -1 }).lean();
+
+export { buildPartnerQuoteSlip };

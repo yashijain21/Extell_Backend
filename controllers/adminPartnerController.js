@@ -13,7 +13,7 @@ import {
   normalizePartnerPayload,
   normalizeText
 } from '../utils/partnerHelpers.js';
-import { buildPartnerQuote } from '../services/partnerQuoteService.js';
+import { buildPartnerQuote, buildPartnerQuoteSlip, previewPartnerQuote } from '../services/partnerQuoteService.js';
 
 const ensureUniqueSlug = async (baseSlug, excludeId = null) => {
   const normalizedBase = normalizeText(baseSlug).toLowerCase();
@@ -427,13 +427,47 @@ export const generateAdminPartnerQuote = async (req, res) => {
     const quote = await buildPartnerQuote({
       partnerId,
       createdBy: null,
-      payload: req.body || {},
+      payload: {
+        ...(req.body || {}),
+        customerName: req.body?.customerName || req.body?.companyName || req.body?.partnerName || '',
+        companyName: req.body?.companyName || req.body?.partnerName || ''
+      },
       markupPercentOverride: req.body?.markupPercent
     });
 
     return res.status(201).json({
       success: true,
-      data: { quote }
+      data: {
+        quote,
+        slip: buildPartnerQuoteSlip(quote, { label: 'Partner Payment Slip' })
+      }
+    });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const previewAdminPartnerQuote = async (req, res) => {
+  try {
+    await ensureDb();
+    const partnerId = String(req.body?.partnerId || '').trim();
+    if (!partnerId || !mongoose.Types.ObjectId.isValid(partnerId)) {
+      return res.status(400).json({ success: false, message: 'A valid partnerId is required.' });
+    }
+
+    const preview = await previewPartnerQuote({
+      partnerId,
+      payload: {
+        ...(req.body || {}),
+        customerName: req.body?.customerName || req.body?.companyName || req.body?.partnerName || '',
+        companyName: req.body?.companyName || req.body?.partnerName || ''
+      },
+      markupPercentOverride: req.body?.markupPercent
+    });
+
+    return res.json({
+      success: true,
+      data: preview
     });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });

@@ -33,7 +33,8 @@ import {
   resetPartnerPassword,
   listAdminPartnerLeads,
   listAdminPartnerQuotes,
-  generateAdminPartnerQuote
+  generateAdminPartnerQuote,
+  previewAdminPartnerQuote
 } from '../controllers/adminPartnerController.js';
 
 const router = express.Router();
@@ -94,6 +95,7 @@ router.post('/partners/:id/reset-password', resetPartnerPassword);
 
 router.get('/partner-leads', listAdminPartnerLeads);
 router.get('/partner-quotes', listAdminPartnerQuotes);
+router.post('/partner-quotes/preview', previewAdminPartnerQuote);
 router.post('/partner-quotes/generate', generateAdminPartnerQuote);
 
 export default router;
