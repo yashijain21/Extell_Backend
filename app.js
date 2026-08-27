@@ -6,6 +6,7 @@ import Product from './models/Product.js';
 import Category from './models/Category.js';
 import SupportTicket from './models/SupportTicket.js';
 import adminRoutes from './routes/adminRoutes.js';
+import partnerRoutes from './routes/partnerRoutes.js';
 import { ensureDb, USE_DB } from './utils/db.js';
 import { ensureDefaultAdmin } from './controllers/adminAuthController.js';
 import { createWarrantyRegistration } from './controllers/warrantyController.js';
@@ -686,6 +687,7 @@ app.post('/api/quotes', async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 });
+app.use('/api/partner', partnerRoutes);
 app.post('/api/support/tickets', async (req, res) => {
   try {
     if (!USE_DB) {

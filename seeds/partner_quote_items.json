@@ -1,0 +1,80 @@
+[
+  {
+    "_id": "66c500000000000000000001",
+    "quoteId": "66c400000000000000000001",
+    "partnerId": "66c100000000000000000001",
+    "productId": "66c000000000000000000001",
+    "productName": "Extell Sigma 10KVA Online UPS",
+    "sku": "UPS-10K-ONLINE",
+    "unitPrice": 245000,
+    "quantity": 1,
+    "lineTotal": 245000,
+    "createdAt": "2026-08-14T10:20:00.000Z",
+    "updatedAt": "2026-08-14T10:20:00.000Z"
+  },
+  {
+    "_id": "66c500000000000000000002",
+    "quoteId": "66c400000000000000000001",
+    "partnerId": "66c100000000000000000001",
+    "productId": "66c000000000000000000003",
+    "productName": "Extell LiFePO4 Battery Module 100Ah",
+    "sku": "BAT-LFP-100AH",
+    "unitPrice": 82000,
+    "quantity": 2,
+    "lineTotal": 164000,
+    "createdAt": "2026-08-14T10:20:00.000Z",
+    "updatedAt": "2026-08-14T10:20:00.000Z"
+  },
+  {
+    "_id": "66c500000000000000000003",
+    "quoteId": "66c400000000000000000002",
+    "partnerId": "66c100000000000000000002",
+    "productId": "66c000000000000000000002",
+    "productName": "Extell Sigma 20KVA Online UPS",
+    "sku": "UPS-20K-ONLINE",
+    "unitPrice": 395000,
+    "quantity": 1,
+    "lineTotal": 395000,
+    "createdAt": "2026-08-13T10:15:00.000Z",
+    "updatedAt": "2026-08-13T10:15:00.000Z"
+  },
+  {
+    "_id": "66c500000000000000000004",
+    "quoteId": "66c400000000000000000002",
+    "partnerId": "66c100000000000000000002",
+    "productId": "66c000000000000000000005",
+    "productName": "Extell 42U Industrial Server Rack",
+    "sku": "RACK-42U-IND",
+    "unitPrice": 68000,
+    "quantity": 1,
+    "lineTotal": 68000,
+    "createdAt": "2026-08-13T10:15:00.000Z",
+    "updatedAt": "2026-08-13T10:15:00.000Z"
+  },
+  {
+    "_id": "66c500000000000000000005",
+    "quoteId": "66c400000000000000000003",
+    "partnerId": "66c100000000000000000003",
+    "productId": "66c000000000000000000001",
+    "productName": "Extell Sigma 10KVA Online UPS",
+    "sku": "UPS-10K-ONLINE",
+    "unitPrice": 245000,
+    "quantity": 2,
+    "lineTotal": 490000,
+    "createdAt": "2026-08-12T12:30:00.000Z",
+    "updatedAt": "2026-08-12T12:30:00.000Z"
+  },
+  {
+    "_id": "66c500000000000000000006",
+    "quoteId": "66c400000000000000000003",
+    "partnerId": "66c100000000000000000003",
+    "productId": "66c000000000000000000004",
+    "productName": "Extell 3-Phase Intelligent PDU 32A",
+    "sku": "PDU-3PH-32A",
+    "unitPrice": 26500,
+    "quantity": 4,
+    "lineTotal": 106000,
+    "createdAt": "2026-08-12T12:30:00.000Z",
+    "updatedAt": "2026-08-12T12:30:00.000Z"
+  }
+]

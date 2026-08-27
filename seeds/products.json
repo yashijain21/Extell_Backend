@@ -1,0 +1,98 @@
+[
+  {
+    "_id": "66c000000000000000000001",
+    "ID": 3001,
+    "Type": "ups",
+    "SKU": "UPS-10K-ONLINE",
+    "Name": "Extell Sigma 10KVA Online UPS",
+    "Published": 1,
+    "Is featured?": 1,
+    "In stock?": 1,
+    "category": "UPS > Three Phase Online UPS",
+    "Categories": "UPS > Three Phase Online UPS",
+    "price": 245000,
+    "descriptionText": "Three phase double-conversion online UPS for data centers and industrial loads.",
+    "Images": [
+      "https://extellsystems.com/wp-content/uploads/2026/01/sigma-10k-front.png",
+      "https://extellsystems.com/wp-content/uploads/2026/01/sigma-10k-rear.png"
+    ],
+    "createdAt": "2026-01-12T10:00:00.000Z",
+    "updatedAt": "2026-01-12T10:00:00.000Z"
+  },
+  {
+    "_id": "66c000000000000000000002",
+    "ID": 3002,
+    "Type": "ups",
+    "SKU": "UPS-20K-ONLINE",
+    "Name": "Extell Sigma 20KVA Online UPS",
+    "Published": 1,
+    "Is featured?": 0,
+    "In stock?": 1,
+    "category": "UPS > Three Phase Online UPS",
+    "Categories": "UPS > Three Phase Online UPS",
+    "price": 395000,
+    "descriptionText": "High-capacity online UPS for manufacturing plants and IT facilities.",
+    "Images": [
+      "https://extellsystems.com/wp-content/uploads/2026/01/sigma-20k-front.png"
+    ],
+    "createdAt": "2026-01-12T10:05:00.000Z",
+    "updatedAt": "2026-01-12T10:05:00.000Z"
+  },
+  {
+    "_id": "66c000000000000000000003",
+    "ID": 3003,
+    "Type": "battery",
+    "SKU": "BAT-LFP-100AH",
+    "Name": "Extell LiFePO4 Battery Module 100Ah",
+    "Published": 1,
+    "Is featured?": 1,
+    "In stock?": 1,
+    "category": "Battery > Lithium Battery",
+    "Categories": "Battery > Lithium Battery",
+    "price": 82000,
+    "descriptionText": "Rack-mount lithium battery module with integrated BMS.",
+    "Images": [
+      "https://extellsystems.com/wp-content/uploads/2026/01/lfp-100ah.png"
+    ],
+    "createdAt": "2026-01-12T10:10:00.000Z",
+    "updatedAt": "2026-01-12T10:10:00.000Z"
+  },
+  {
+    "_id": "66c000000000000000000004",
+    "ID": 3004,
+    "Type": "accessory",
+    "SKU": "PDU-3PH-32A",
+    "Name": "Extell 3-Phase Intelligent PDU 32A",
+    "Published": 1,
+    "Is featured?": 0,
+    "In stock?": 1,
+    "category": "PDU > Intelligent PDU",
+    "Categories": "PDU > Intelligent PDU",
+    "price": 26500,
+    "descriptionText": "Smart power distribution unit with remote monitoring.",
+    "Images": [
+      "https://extellsystems.com/wp-content/uploads/2026/01/pdu-32a.png"
+    ],
+    "createdAt": "2026-01-12T10:15:00.000Z",
+    "updatedAt": "2026-01-12T10:15:00.000Z"
+  },
+  {
+    "_id": "66c000000000000000000005",
+    "ID": 3005,
+    "Type": "rack",
+    "SKU": "RACK-42U-IND",
+    "Name": "Extell 42U Industrial Server Rack",
+    "Published": 1,
+    "Is featured?": 0,
+    "In stock?": 1,
+    "category": "Racks and Cabinets > Server Rack",
+    "Categories": "Racks and Cabinets > Server Rack",
+    "price": 68000,
+    "descriptionText": "Heavy-duty server rack suitable for enterprise deployments.",
+    "Images": [
+      "https://extellsystems.com/wp-content/uploads/2026/01/rack-42u.png"
+    ],
+    "createdAt": "2026-01-12T10:20:00.000Z",
+    "updatedAt": "2026-01-12T10:20:00.000Z"
+  }
+]

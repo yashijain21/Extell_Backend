@@ -1,0 +1,72 @@
+[
+  {
+    "_id": "66c300000000000000000001",
+    "partnerId": "66c100000000000000000001",
+    "customerName": "Vikram Sharma",
+    "customerEmail": "vikram.sharma@adityalabs.in",
+    "customerPhone": "+91-98111-44001",
+    "companyName": "Aditya Labs",
+    "source": "website-form",
+    "notes": "Asked for a 10KVA UPS with battery backup for lab servers.",
+    "status": "new",
+    "assignedTo": "66c200000000000000000001",
+    "createdAt": "2026-08-14T10:00:00.000Z",
+    "updatedAt": "2026-08-14T10:00:00.000Z"
+  },
+  {
+    "_id": "66c300000000000000000002",
+    "partnerId": "66c100000000000000000002",
+    "customerName": "Sonal Mehta",
+    "customerEmail": "sonal.mehta@sunrisefoods.in",
+    "customerPhone": "+91-98222-44002",
+    "companyName": "Sunrise Foods",
+    "source": "phone-call",
+    "notes": "Requested quote for industrial UPS and rack package.",
+    "status": "contacted",
+    "assignedTo": "66c200000000000000000002",
+    "createdAt": "2026-08-13T09:30:00.000Z",
+    "updatedAt": "2026-08-13T10:00:00.000Z"
+  },
+  {
+    "_id": "66c300000000000000000003",
+    "partnerId": "66c100000000000000000003",
+    "customerName": "Karthik Reddy",
+    "customerEmail": "karthik.reddy@novaengg.in",
+    "customerPhone": "+91-98733-44003",
+    "companyName": "Nova Engineering",
+    "source": "reference",
+    "notes": "Needs a repeat quote with battery module upgrade.",
+    "status": "quoted",
+    "assignedTo": null,
+    "createdAt": "2026-08-12T12:15:00.000Z",
+    "updatedAt": "2026-08-12T12:15:00.000Z"
+  },
+  {
+    "_id": "66c300000000000000000004",
+    "partnerId": "66c100000000000000000001",
+    "customerName": "Priya Nair",
+    "customerEmail": "priya.nair@medimax.in",
+    "customerPhone": "+91-98144-44004",
+    "companyName": "MediMax Hospitals",
+    "source": "walk-in",
+    "notes": "Interested in a service-backed 20KVA online UPS package.",
+    "status": "won",
+    "assignedTo": "66c200000000000000000001",
+    "createdAt": "2026-08-11T14:00:00.000Z",
+    "updatedAt": "2026-08-11T14:00:00.000Z"
+  },
+  {
+    "_id": "66c300000000000000000005",
+    "partnerId": "66c100000000000000000002",
+    "customerName": "Amit Joshi",
+    "customerEmail": "amit.joshi@metrobuild.in",
+    "customerPhone": "+91-98255-44005",
+    "companyName": "MetroBuild Infra",
+    "source": "email",
+    "notes": "Awaiting revised pricing after markup review.",
+    "status": "lost",
+    "assignedTo": null,
+    "createdAt": "2026-08-10T11:25:00.000Z",
+    "updatedAt": "2026-08-10T11:25:00.000Z"
+  }
+]

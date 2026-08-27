@@ -1,0 +1,26 @@
+[
+  {
+    "_id": "66c200000000000000000001",
+    "partnerId": "66c100000000000000000001",
+    "name": "Rohit Bansal",
+    "email": "portal@atlaspower.in",
+    "passwordHash": "$2a$10$Qj0VwYvTSGn72IQL.WMpPef7aAcxd.4Ds83olbBl6sEM2L8FTbAJa",
+    "role": "partner_admin",
+    "isActive": true,
+    "lastLoginAt": "2026-08-10T09:00:00.000Z",
+    "createdAt": "2026-01-14T08:30:00.000Z",
+    "updatedAt": "2026-08-10T09:00:00.000Z"
+  },
+  {
+    "_id": "66c200000000000000000002",
+    "partnerId": "66c100000000000000000002",
+    "name": "Meera Kulkarni",
+    "email": "portal@shaktienergy.in",
+    "passwordHash": "$2a$10$6OOgS2cLYfvPsfqpA7Yht.snDUqboYVUMN6WDxy8qHSabhuGZ7k3K",
+    "role": "partner_admin",
+    "isActive": true,
+    "lastLoginAt": "2026-08-12T11:15:00.000Z",
+    "createdAt": "2026-01-14T08:35:00.000Z",
+    "updatedAt": "2026-08-12T11:15:00.000Z"
+  }
+]

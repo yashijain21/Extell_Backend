@@ -1,0 +1,110 @@
+[
+  {
+    "_id": "66c400000000000000000001",
+    "partnerId": "66c100000000000000000001",
+    "quoteNumber": "QT-2026-0001",
+    "customerName": "Vikram Sharma",
+    "customerEmail": "vikram.sharma@adityalabs.in",
+    "customerPhone": "+91-98111-44001",
+    "companyName": "Aditya Labs",
+    "items": [
+      {
+        "productId": "66c000000000000000000001",
+        "productName": "Extell Sigma 10KVA Online UPS",
+        "sku": "UPS-10K-ONLINE",
+        "unitPrice": 245000,
+        "quantity": 1,
+        "lineTotal": 245000
+      },
+      {
+        "productId": "66c000000000000000000003",
+        "productName": "Extell LiFePO4 Battery Module 100Ah",
+        "sku": "BAT-LFP-100AH",
+        "unitPrice": 82000,
+        "quantity": 2,
+        "lineTotal": 164000
+      }
+    ],
+    "subtotal": 409000,
+    "markupPercent": 8,
+    "markupAmount": 32720,
+    "total": 441720,
+    "currency": "INR",
+    "status": "sent",
+    "createdBy": "66c200000000000000000001",
+    "createdAt": "2026-08-14T10:20:00.000Z",
+    "updatedAt": "2026-08-14T10:20:00.000Z"
+  },
+  {
+    "_id": "66c400000000000000000002",
+    "partnerId": "66c100000000000000000002",
+    "quoteNumber": "QT-2026-0002",
+    "customerName": "Sonal Mehta",
+    "customerEmail": "sonal.mehta@sunrisefoods.in",
+    "customerPhone": "+91-98222-44002",
+    "companyName": "Sunrise Foods",
+    "items": [
+      {
+        "productId": "66c000000000000000000002",
+        "productName": "Extell Sigma 20KVA Online UPS",
+        "sku": "UPS-20K-ONLINE",
+        "unitPrice": 395000,
+        "quantity": 1,
+        "lineTotal": 395000
+      },
+      {
+        "productId": "66c000000000000000000005",
+        "productName": "Extell 42U Industrial Server Rack",
+        "sku": "RACK-42U-IND",
+        "unitPrice": 68000,
+        "quantity": 1,
+        "lineTotal": 68000
+      }
+    ],
+    "subtotal": 463000,
+    "markupPercent": 10,
+    "markupAmount": 46300,
+    "total": 509300,
+    "currency": "INR",
+    "status": "draft",
+    "createdBy": "66c200000000000000000002",
+    "createdAt": "2026-08-13T10:15:00.000Z",
+    "updatedAt": "2026-08-13T10:15:00.000Z"
+  },
+  {
+    "_id": "66c400000000000000000003",
+    "partnerId": "66c100000000000000000003",
+    "quoteNumber": "QT-2026-0003",
+    "customerName": "Karthik Reddy",
+    "customerEmail": "karthik.reddy@novaengg.in",
+    "customerPhone": "+91-98733-44003",
+    "companyName": "Nova Engineering",
+    "items": [
+      {
+        "productId": "66c000000000000000000001",
+        "productName": "Extell Sigma 10KVA Online UPS",
+        "sku": "UPS-10K-ONLINE",
+        "unitPrice": 245000,
+        "quantity": 2,
+        "lineTotal": 490000
+      },
+      {
+        "productId": "66c000000000000000000004",
+        "productName": "Extell 3-Phase Intelligent PDU 32A",
+        "sku": "PDU-3PH-32A",
+        "unitPrice": 26500,
+        "quantity": 4,
+        "lineTotal": 106000
+      }
+    ],
+    "subtotal": 596000,
+    "markupPercent": 6,
+    "markupAmount": 35760,
+    "total": 631760,
+    "currency": "INR",
+    "status": "accepted",
+    "createdBy": null,
+    "createdAt": "2026-08-12T12:30:00.000Z",
+    "updatedAt": "2026-08-12T12:30:00.000Z"
+  }
+]

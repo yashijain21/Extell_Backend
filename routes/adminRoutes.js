@@ -23,6 +23,18 @@ import { listWarrantyRegistrations, updateWarrantyStatus } from '../controllers/
 import { listQuoteRequests, updateQuoteStatus } from '../controllers/quoteController.js';
 import { listAdmins, createAdmin } from '../controllers/adminUserController.js';
 import { authMiddleware, roleMiddleware } from '../middleware/authMiddleware.js';
+import {
+  listAdminPartners,
+  getAdminPartnerById,
+  createAdminPartner,
+  updateAdminPartner,
+  deleteAdminPartner,
+  invitePartnerUser,
+  resetPartnerPassword,
+  listAdminPartnerLeads,
+  listAdminPartnerQuotes,
+  generateAdminPartnerQuote
+} from '../controllers/adminPartnerController.js';
 
 const router = express.Router();
 
@@ -71,5 +83,17 @@ router.put('/warranties/:id/status', updateWarrantyStatus);
 
 router.get('/users', listAdmins);
 router.post('/users', createAdmin);
+
+router.get('/partners', listAdminPartners);
+router.post('/partners', createAdminPartner);
+router.get('/partners/:id', getAdminPartnerById);
+router.put('/partners/:id', updateAdminPartner);
+router.delete('/partners/:id', deleteAdminPartner);
+router.post('/partners/:id/invite', invitePartnerUser);
+router.post('/partners/:id/reset-password', resetPartnerPassword);
+
+router.get('/partner-leads', listAdminPartnerLeads);
+router.get('/partner-quotes', listAdminPartnerQuotes);
+router.post('/partner-quotes/generate', generateAdminPartnerQuote);
 
 export default router;
