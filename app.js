@@ -240,6 +240,44 @@ const normalizeProduct = (doc) => {
   };
 };
 
+const normalizeLookup = (value = '') =>
+  String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-');
+
+const matchesProductLookup = (doc, lookupValue) => {
+  const lookup = normalizeLookup(lookupValue);
+  if (!lookup) return false;
+
+  const candidates = [
+    doc?._id,
+    doc?.id,
+    doc?.ID,
+    doc?.SKU,
+    doc?.sku,
+    doc?.slug,
+    doc?.Name,
+    doc?.name
+  ]
+    .filter(Boolean)
+    .map((value) => normalizeLookup(value));
+
+  return candidates.some((candidate) => {
+    if (!candidate) return false;
+    return (
+      candidate === lookup ||
+      slugify(candidate) === lookup ||
+      slugifyLegacy(candidate) === lookup
+    );
+  });
+};
+
+const findProductByLookup = (docs = [], lookupValue) => {
+  const match = (docs || []).find((doc) => matchesProductLookup(doc, lookupValue));
+  return match || null;
+};
+
 const buildCategoryBuckets = (items) => {
   const map = new Map();
   for (const item of items) {
@@ -616,24 +654,17 @@ app.get('/api/products/slug/:slug', async (req, res) => {
     await ensureDb();
     setPublicApiCache(res, 300);
     const { slug } = req.params;
-    const normalizedSlug = slugify(slug);
-    const normalizedLegacySlug = slugifyLegacy(slug);
+    const normalizedSlug = normalizeLookup(slug);
     if (!normalizedSlug) return res.status(400).json({ message: 'Invalid slug' });
 
     if (USE_DB) {
       const docs = await Product.find({}, LIST_PROJECTION, { maxTimeMS: 15000 }).lean();
-      const found = docs.find((doc) => {
-        const name = doc?.Name || doc?.name || '';
-        return slugify(name) === normalizedSlug || slugifyLegacy(name) === normalizedLegacySlug;
-      });
+      const found = findProductByLookup(docs, normalizedSlug);
       if (!found) return res.status(404).json({ message: 'Product not found' });
       return res.json({ item: normalizeProduct(found) });
     }
 
-    const found = fallbackProducts.find((item) => {
-      const name = item?.Name || item?.name || '';
-      return slugify(name) === normalizedSlug || slugifyLegacy(name) === normalizedLegacySlug;
-    });
+    const found = findProductByLookup(fallbackProducts, normalizedSlug);
     if (!found) return res.status(404).json({ message: 'Product not found' });
     return res.json({ item: normalizeProduct(found) });
   } catch (error) {
@@ -646,8 +677,15 @@ app.get('/api/products/:id', async (req, res) => {
     await ensureDb();
     setPublicApiCache(res, 300);
     const { id } = req.params;
+    const normalizedId = normalizeLookup(id);
+    if (!normalizedId) return res.status(400).json({ message: 'Invalid product id' });
 
-    const queryCandidates = [{ id }, { SKU: id }, { ID: Number.isNaN(Number(id)) ? id : Number(id) }];
+    const queryCandidates = [
+      { id },
+      { SKU: id },
+      { SKU: new RegExp(`^${escapeRegex(id)}$`, 'i') },
+      { ID: Number.isNaN(Number(id)) ? id : Number(id) }
+    ];
     if (mongoose.Types.ObjectId.isValid(id)) queryCandidates.unshift({ _id: id });
 
     const doc = USE_DB
@@ -655,9 +693,14 @@ app.get('/api/products/:id', async (req, res) => {
       : fallbackProducts.find((item) =>
           [item._id, item.id, item.SKU, String(item.ID)].map((value) => String(value || '')).includes(String(id))
         );
-    if (!doc) return res.status(404).json({ message: 'Product not found' });
+    if (doc) return res.json({ item: normalizeProduct(doc) });
 
-    return res.json({ item: normalizeProduct(doc) });
+    const fallbackDoc = USE_DB
+      ? findProductByLookup(await Product.find({}, LIST_PROJECTION, { maxTimeMS: 15000 }).lean(), normalizedId)
+      : findProductByLookup(fallbackProducts, normalizedId);
+    if (!fallbackDoc) return res.status(404).json({ message: 'Product not found' });
+
+    return res.json({ item: normalizeProduct(fallbackDoc) });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

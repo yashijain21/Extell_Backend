@@ -32,15 +32,26 @@ const normalizeQuoteItems = (items = []) =>
     }))
     .filter((item) => item.productId && item.quantity > 0);
 
-const validatePartnerQuotePayload = (payload = {}) => {
-  const customerName = normalizeText(payload.customerName || payload.name || '');
+const validatePartnerQuotePayload = (payload = {}, partner = null) => {
+  const customerName = normalizeText(
+    payload.customerName ||
+      payload.name ||
+      partner?.contactName ||
+      partner?.companyName ||
+      partner?.name ||
+      ''
+  );
   const customerEmail = normalizeText(payload.customerEmail || payload.email || '').toLowerCase();
   const customerPhone = normalizeText(payload.customerPhone || payload.phone || '');
   const companyName = normalizeText(payload.companyName || '');
-  const items = normalizeQuoteItems(payload.items || payload.products || []);
+  const fallbackItems = Array.isArray(partner?.assignedProductIds) ? partner.assignedProductIds : [];
+  const items = normalizeQuoteItems(payload.items || payload.products || fallbackItems.map((productId) => ({
+    productId,
+    quantity: 1
+  })));
 
   if (!customerName || !items.length) {
-    throw new Error('Customer name and at least one product are required.');
+    throw new Error('A customer name and at least one product are required.');
   }
 
   return {
@@ -93,7 +104,7 @@ const preparePartnerQuoteData = async ({ partnerId, payload = {}, markupPercentO
     throw new Error('Partner not found.');
   }
 
-  const parsed = validatePartnerQuotePayload(payload);
+  const parsed = validatePartnerQuotePayload(payload, partner);
   const markupPercent = toNumber(
     markupPercentOverride ?? payload.markupPercent ?? partner.partnerMarkupPercent ?? 0,
     0
