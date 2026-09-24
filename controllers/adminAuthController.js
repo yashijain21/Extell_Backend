@@ -57,6 +57,33 @@ export const getMe = async (req, res) => {
   }
 };
 
+export const resetAdminPassword = async (req, res) => {
+  try {
+    await ensureDb();
+    const oldPassword = String(req.body?.oldPassword || '');
+    const newPassword = String(req.body?.newPassword || '');
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: 'Old password and new password are required.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters long.' });
+    }
+
+    const admin = await Admin.findById(req.user?.id).exec();
+    if (!admin) return res.status(404).json({ message: 'Admin not found.' });
+
+    const isMatch = await admin.comparePassword(oldPassword);
+    if (!isMatch) return res.status(401).json({ message: 'Old password is incorrect.' });
+
+    admin.password = newPassword;
+    await admin.save();
+    return res.json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 export const ensureDefaultAdmin = async () => {
   const seedEmail = String(process.env.ADMIN_SEED_EMAIL || '').trim().toLowerCase();
   const seedPassword = String(process.env.ADMIN_SEED_PASSWORD || '').trim();

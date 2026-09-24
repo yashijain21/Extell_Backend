@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginAdmin, getMe } from '../controllers/adminAuthController.js';
+import { loginAdmin, getMe, resetAdminPassword } from '../controllers/adminAuthController.js';
 import { getDashboardStats } from '../controllers/adminDashboardController.js';
 import { getHomePageContent, updateHomePageContent } from '../controllers/homePageController.js';
 import {
@@ -41,6 +41,7 @@ const router = express.Router();
 
 router.post('/login', loginAdmin);
 router.get('/me', authMiddleware, getMe);
+router.post('/reset-password', authMiddleware, resetAdminPassword);
 
 router.use(authMiddleware, roleMiddleware(['admin']));
 
