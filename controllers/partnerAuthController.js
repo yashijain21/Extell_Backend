@@ -46,6 +46,8 @@ export const requestPartnerPasswordReset = async (req, res) => {
           await sendEmail({
             to: email,
             subject: 'Your Extell password reset code',
+            passcode: otp,
+            time: `${expiresAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST`,
             text: `Your password reset code is ${otp}. It expires in 10 minutes. If you did not request this, you can ignore this email.`
           });
         } catch (error) {

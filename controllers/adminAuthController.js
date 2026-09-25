@@ -26,12 +26,13 @@ export const requestAdminPasswordReset = async (req, res) => {
       const existingOtp = await PasswordResetOtp.findOne({ email }).lean();
       if (!existingOtp || Date.now() - new Date(existingOtp.createdAt).getTime() >= 60_000) {
         const otp = String(randomInt(0, 10_000)).padStart(4, '0');
+        const expiresAt = new Date(Date.now() + 10 * 60_000);
         await PasswordResetOtp.findOneAndUpdate(
           { email },
           {
             $set: {
               otpHash: createHash('sha256').update(otp).digest('hex'),
-              expiresAt: new Date(Date.now() + 10 * 60_000),
+              expiresAt,
               createdAt: new Date()
             }
           },
@@ -41,6 +42,8 @@ export const requestAdminPasswordReset = async (req, res) => {
           await sendEmail({
             to: email,
             subject: 'Your Extell admin password reset code',
+            passcode: otp,
+            time: `${expiresAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST`,
             text: `Your password reset code is ${otp}. It expires in 10 minutes. If you did not request this, you can ignore this email.`
           });
         } catch (error) {
