@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -11,8 +11,6 @@ import { ensureDb, USE_DB } from './utils/db.js';
 import { ensureDefaultAdmin } from './controllers/adminAuthController.js';
 import { createWarrantyRegistration } from './controllers/warrantyController.js';
 import { createQuoteRequest } from './controllers/quoteController.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
