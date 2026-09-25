@@ -7,10 +7,6 @@ const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'no-reply@extell.local';
 const SMTP_CONN_TIMEOUT_MS = Number(process.env.SMTP_CONN_TIMEOUT_MS) || 8000;
 const SMTP_GREET_TIMEOUT_MS = Number(process.env.SMTP_GREET_TIMEOUT_MS) || 8000;
 const SMTP_SOCKET_TIMEOUT_MS = Number(process.env.SMTP_SOCKET_TIMEOUT_MS) || 10000;
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const RESEND_API_URL = process.env.RESEND_API_URL || 'https://api.resend.com/emails';
-const RESEND_FROM = process.env.RESEND_FROM || SMTP_FROM;
-
 let transportPromise;
 
 const getTransport = async () => {
@@ -37,20 +33,6 @@ const getTransport = async () => {
 
 export const sendEmail = async ({ to, subject, text }) => {
   const transport = await getTransport();
-  if (transport) {
-    try {
-      await transport.sendMail({ from: SMTP_FROM, to, subject, text });
-      return;
-    } catch (smtpError) {
-      if (!RESEND_API_KEY) throw smtpError;
-    }
-  }
-
-  if (!RESEND_API_KEY) throw new Error('No mail provider configured. Set SMTP_* values or RESEND_API_KEY.');
-  const response = await fetch(RESEND_API_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, text })
-  });
-  if (!response.ok) throw new Error(`Email provider failed (${response.status}).`);
+  if (!transport) throw new Error('SMTP is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS.');
+  await transport.sendMail({ from: SMTP_FROM, to, subject, text });
 };
