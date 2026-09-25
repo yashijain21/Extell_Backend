@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
+import { createHash, randomInt } from 'crypto';
 import Admin from '../models/Admin.js';
+import PasswordResetOtp from '../models/PasswordResetOtp.js';
 import { ensureDb } from '../utils/db.js';
+import { sendEmail } from '../services/mailService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -9,6 +12,50 @@ const signToken = (admin) =>
   jwt.sign({ id: admin._id, role: admin.role, email: admin.email, name: admin.name }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN
   });
+
+export const requestAdminPasswordReset = async (req, res) => {
+  try {
+    await ensureDb();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'A valid email is required.' });
+    }
+
+    const admin = await Admin.findOne({ email }).select('_id').lean();
+    if (admin) {
+      const existingOtp = await PasswordResetOtp.findOne({ email }).lean();
+      if (!existingOtp || Date.now() - new Date(existingOtp.createdAt).getTime() >= 60_000) {
+        const otp = String(randomInt(0, 10_000)).padStart(4, '0');
+        await PasswordResetOtp.findOneAndUpdate(
+          { email },
+          {
+            $set: {
+              otpHash: createHash('sha256').update(otp).digest('hex'),
+              expiresAt: new Date(Date.now() + 10 * 60_000),
+              createdAt: new Date()
+            }
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        try {
+          await sendEmail({
+            to: email,
+            subject: 'Your Extell admin password reset code',
+            text: `Your password reset code is ${otp}. It expires in 10 minutes. If you did not request this, you can ignore this email.`
+          });
+        } catch (error) {
+          await PasswordResetOtp.deleteOne({ email });
+          throw error;
+        }
+      }
+    }
+
+    return res.json({ message: 'If an admin account exists for this email, a password reset code has been sent.' });
+  } catch (error) {
+    console.error('Admin password reset email failed:', error);
+    return res.status(500).json({ message: 'Unable to send a password reset code right now.' });
+  }
+};
 
 export const loginAdmin = async (req, res) => {
   try {

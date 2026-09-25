@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginAdmin, getMe, resetAdminPassword } from '../controllers/adminAuthController.js';
+import { loginAdmin, getMe, resetAdminPassword, requestAdminPasswordReset } from '../controllers/adminAuthController.js';
 import { getDashboardStats } from '../controllers/adminDashboardController.js';
 import { getHomePageContent, updateHomePageContent } from '../controllers/homePageController.js';
 import {
@@ -40,6 +40,7 @@ import {
 const router = express.Router();
 
 router.post('/login', loginAdmin);
+router.post('/forgot-password', requestAdminPasswordReset);
 router.get('/me', authMiddleware, getMe);
 router.post('/reset-password', authMiddleware, resetAdminPassword);
 
