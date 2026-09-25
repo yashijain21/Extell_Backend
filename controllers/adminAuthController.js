@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { createHash, randomInt } from 'crypto';
+import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import Admin from '../models/Admin.js';
 import PasswordResetOtp from '../models/PasswordResetOtp.js';
 import { ensureDb } from '../utils/db.js';
@@ -32,6 +32,7 @@ export const requestAdminPasswordReset = async (req, res) => {
           {
             $set: {
               otpHash: createHash('sha256').update(otp).digest('hex'),
+              attempts: 0,
               expiresAt,
               createdAt: new Date()
             }
@@ -39,7 +40,7 @@ export const requestAdminPasswordReset = async (req, res) => {
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         try {
-          await sendEmail({
+      await sendEmail({
             to: email,
             subject: 'Your Extell admin password reset code',
             passcode: otp,
@@ -57,6 +58,49 @@ export const requestAdminPasswordReset = async (req, res) => {
   } catch (error) {
     console.error('Admin password reset email failed:', error);
     return res.status(500).json({ message: 'Unable to send a password reset code right now.' });
+  }
+};
+
+export const resetAdminPasswordWithOtp = async (req, res) => {
+  try {
+    await ensureDb();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+    const newPassword = String(req.body?.newPassword || '');
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{4}$/.test(otp) || !newPassword) {
+      return res.status(400).json({ message: 'Email, four-digit code, and new password are required.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters long.' });
+    }
+
+    const resetRecord = await PasswordResetOtp.findOne({ email }).exec();
+    if (!resetRecord || resetRecord.expiresAt <= new Date() || resetRecord.attempts >= 5) {
+      return res.status(400).json({ message: 'The code is invalid or expired. Request a new code.' });
+    }
+
+    const expectedHash = Buffer.from(resetRecord.otpHash, 'hex');
+    const receivedHash = createHash('sha256').update(otp).digest();
+    if (expectedHash.length !== receivedHash.length || !timingSafeEqual(expectedHash, receivedHash)) {
+      resetRecord.attempts += 1;
+      await resetRecord.save();
+      return res.status(400).json({ message: 'The code is invalid or expired.' });
+    }
+
+    const admin = await Admin.findOne({ email }).exec();
+    if (!admin) {
+      await PasswordResetOtp.deleteOne({ email });
+      return res.status(400).json({ message: 'The code is invalid or expired.' });
+    }
+
+    admin.password = newPassword;
+    await admin.save();
+    await PasswordResetOtp.deleteOne({ email });
+    return res.json({ message: 'Password updated successfully. You can now sign in.' });
+  } catch (error) {
+    console.error('Admin password reset with OTP failed:', error);
+    return res.status(500).json({ message: 'Unable to reset the password right now.' });
   }
 };
 
