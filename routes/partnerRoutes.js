@@ -1,6 +1,6 @@
 import express from 'express';
 import { authMiddleware, roleMiddleware } from '../middleware/authMiddleware.js';
-import { loginPartner, getPartnerMe } from '../controllers/partnerAuthController.js';
+import { loginPartner, getPartnerMe, requestPartnerPasswordReset } from '../controllers/partnerAuthController.js';
 import {
   listPartnerLeads,
   listPartnerQuotes,
@@ -11,6 +11,7 @@ import {
 const router = express.Router();
 
 router.post('/login', loginPartner);
+router.post('/forgot-password', requestPartnerPasswordReset);
 
 router.use(authMiddleware, roleMiddleware(['partner_admin', 'partner_user']));
 
