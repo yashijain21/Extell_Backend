@@ -30,7 +30,7 @@ export const listPublicPartners = async (_req, res) => {
     await ensureDb();
 
     const partners = await Partner.find({ status: 'active' })
-      .select('name slug companyName website city state country')
+      .select('name slug companyName website city state country assignedProductIds')
       .sort({ companyName: 1 })
       .lean();
 
@@ -43,9 +43,9 @@ export const listPublicPartners = async (_req, res) => {
       : [];
     const productsById = new Map(products.map((product) => [String(product._id), normalizePublicProduct(product)]));
 
-    const items = partners.map((partner) => ({
+    const items = partners.map(({ assignedProductIds = [], ...partner }) => ({
       ...partner,
-      products: (partner.assignedProductIds || [])
+      products: assignedProductIds
         .map((id) => productsById.get(String(id)))
         .filter(Boolean)
     }));
