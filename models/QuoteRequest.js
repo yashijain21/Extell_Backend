@@ -6,9 +6,11 @@ const quoteRequestSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
-    mobile: { type: String, required: true, trim: true },
+    mobile: { type: String, default: '', trim: true },
     companyName: { type: String, default: '', trim: true },
     requirements: { type: String, required: true, trim: true },
+    question: { type: String, default: '', trim: true },
+    answer: { type: String, default: '', trim: true },
     productName: { type: String, default: '', trim: true },
     productSku: { type: String, default: '', trim: true },
     source: { type: String, default: 'product-detail', trim: true },

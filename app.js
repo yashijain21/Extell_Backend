@@ -11,7 +11,7 @@ import publicPartnerRoutes from './routes/publicPartnerRoutes.js';
 import { ensureDb, USE_DB } from './utils/db.js';
 import { ensureDefaultAdmin } from './controllers/adminAuthController.js';
 import { createWarrantyRegistration } from './controllers/warrantyController.js';
-import { createQuoteRequest } from './controllers/quoteController.js';
+import { createChatbotLead, createQuoteRequest } from './controllers/quoteController.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -727,6 +727,18 @@ app.post('/api/quotes', async (req, res) => {
     return createQuoteRequest(req, res);
   } catch (error) {
     return res.status(500).json({ message: error.message });
+  }
+});
+app.post('/api/chatbot/leads', async (req, res) => {
+  try {
+    if (!USE_DB) {
+      return res.status(503).json({ success: false, message: 'Database is not configured for chatbot leads.' });
+    }
+
+    await ensureDb();
+    return createChatbotLead(req, res);
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 app.use('/api/partner', partnerRoutes);

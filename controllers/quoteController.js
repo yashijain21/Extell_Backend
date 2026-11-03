@@ -87,6 +87,8 @@ const sendQuoteNotification = async (quote) => {
     `Company: ${quote.companyName || 'N/A'}`,
     `Product Name: ${quote.productName || 'N/A'}`,
     `Product SKU: ${quote.productSku || 'N/A'}`,
+    quote.question ? `Question: ${quote.question}` : '',
+    quote.answer ? `Answer: ${quote.answer}` : '',
     `Requirements: ${quote.requirements}`,
     `Source: ${quote.source || 'product-detail'}`
   ].join('\n');
@@ -177,6 +179,55 @@ export const createQuoteRequest = async (req, res) => {
   }
 };
 
+export const createChatbotLead = async (req, res) => {
+  try {
+    await ensureDb();
+
+    const payload = req.body || {};
+    const fullName = String(payload.fullName || '').trim();
+    const email = String(payload.email || '').trim().toLowerCase();
+    const companyName = String(payload.companyName || '').trim();
+    const question = String(payload.question || '').trim();
+    const answer = String(payload.answer || '').trim();
+    const requirements = String(
+      payload.requirements ||
+        (question && answer ? `[Chatbot]\nQuestion: ${question}\nAnswer: ${answer}` : '')
+    ).trim();
+
+    if (!fullName || !email || !question || !answer) {
+      return res.status(400).json({
+        success: false,
+        message: 'Full name, email, question, and answer are required.'
+      });
+    }
+
+    const item = await QuoteRequest.create({
+      fullName,
+      email,
+      mobile: String(payload.mobile || '').trim(),
+      companyName,
+      question,
+      answer,
+      requirements,
+      source: 'chatbot',
+      status: 'new'
+    });
+
+    let mailSent = false;
+    let mailError = '';
+    try {
+      mailSent = await sendQuoteNotification(item);
+      if (!mailSent) mailError = 'Lead saved, but email notification was not sent.';
+    } catch (notifyError) {
+      mailError = notifyError?.message || 'Lead saved, but email notification failed.';
+    }
+
+    return res.status(201).json({ success: true, item, mailSent, mailError });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const listQuoteRequests = async (req, res) => {
   try {
     await ensureDb();
@@ -195,6 +246,8 @@ export const listQuoteRequests = async (req, res) => {
         { companyName: regex },
         { productName: regex },
         { productSku: regex },
+        { question: regex },
+        { answer: regex },
         { requirements: regex }
       ];
     }
@@ -203,6 +256,44 @@ export const listQuoteRequests = async (req, res) => {
     return res.json({ items });
   } catch (error) {
     return res.status(500).json({ message: error.message });
+  }
+};
+
+export const listChatbotLeads = async (req, res) => {
+  try {
+    await ensureDb();
+
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(200, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
+    const skip = (page - 1) * limit;
+    const filter = { source: 'chatbot' };
+    const q = String(req.query.q || '').trim();
+    if (q) {
+      const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [
+        { fullName: regex },
+        { email: regex },
+        { companyName: regex },
+        { question: regex },
+        { answer: regex },
+        { requirements: regex }
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      QuoteRequest.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      QuoteRequest.countDocuments(filter)
+    ]);
+
+    return res.json({
+      success: true,
+      data: {
+        items,
+        pagination: { total, page, limit, totalPages: Math.ceil(total / limit) }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
