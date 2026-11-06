@@ -107,9 +107,7 @@ export const loginPartner = async (req, res) => {
                 name: partner.name,
                 companyName: partner.companyName,
                 slug: partner.slug,
-                status: partner.status,
-                generatedSubdomain: partner.generatedSubdomain,
-                customDomainEnabled: partner.customDomainEnabled
+                status: partner.status
               }
             : null,
           user: {
@@ -154,9 +152,7 @@ export const loginPartner = async (req, res) => {
           name: partner.name,
           companyName: partner.companyName,
           slug: partner.slug,
-          status: partner.status,
-          generatedSubdomain: partner.generatedSubdomain,
-          customDomainEnabled: partner.customDomainEnabled
+          status: partner.status
         },
         user: null
       }
@@ -198,9 +194,6 @@ export const getPartnerMe = async (req, res) => {
           loginEmail: partner.loginEmail,
           status: partner.status,
           partnerMarkupPercent: partner.partnerMarkupPercent,
-          assignedProductIds: partner.assignedProductIds,
-          generatedSubdomain: partner.generatedSubdomain,
-          customDomainEnabled: partner.customDomainEnabled,
           portalNote: partner.portalNote,
           createdAt: partner.createdAt,
           updatedAt: partner.updatedAt

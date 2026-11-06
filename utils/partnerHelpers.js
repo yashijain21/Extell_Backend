@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
-import mongoose from 'mongoose';
 
 export const normalizeText = (value = '') => String(value || '').trim();
 
@@ -15,11 +14,6 @@ export const slugify = (value = '') =>
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-
-export const buildGeneratedSubdomain = (slug = '') => {
-  const normalizedSlug = slugify(slug);
-  return normalizedSlug ? `${normalizedSlug}.extellsystems.com` : '';
-};
 
 export const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -37,23 +31,6 @@ export const toBoolean = (value) => {
   return Boolean(value);
 };
 
-export const normalizeObjectIdList = (value = []) => {
-  const items = Array.isArray(value)
-    ? value
-    : String(value || '')
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-
-  return Array.from(
-    new Set(
-      items
-        .map((entry) => String(entry || '').trim())
-        .filter((entry) => mongoose.Types.ObjectId.isValid(entry))
-    )
-  ).map((entry) => new mongoose.Types.ObjectId(entry));
-};
-
 export const normalizePartnerPayload = (payload = {}) => {
   const companyName = normalizeText(payload.companyName || payload.name || '');
   const contactName = normalizeText(payload.contactName || '');
@@ -68,10 +45,6 @@ export const normalizePartnerPayload = (payload = {}) => {
     payload.partnerMarkupPercent ?? payload.markupPercent ?? 0,
     0
   );
-  const assignedProductIds = normalizeObjectIdList(payload.assignedProductIds || []);
-  const customDomainEnabled = toBoolean(payload.customDomainEnabled || Boolean(website));
-  const generatedSubdomain = customDomainEnabled ? '' : buildGeneratedSubdomain(slug);
-
   return {
     name,
     slug,
@@ -90,9 +63,6 @@ export const normalizePartnerPayload = (payload = {}) => {
       ? normalizeText(payload.status)
       : 'pending',
     partnerMarkupPercent,
-    assignedProductIds,
-    generatedSubdomain,
-    customDomainEnabled,
     portalNote: normalizeText(payload.portalNote || '')
   };
 };

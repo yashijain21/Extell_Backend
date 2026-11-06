@@ -4,7 +4,6 @@ import PartnerUser from '../models/PartnerUser.js';
 import PartnerLead from '../models/PartnerLead.js';
 import PartnerQuote from '../models/PartnerQuote.js';
 import PartnerQuoteItem from '../models/PartnerQuoteItem.js';
-import Product from '../models/Product.js';
 import { ensureDb } from '../utils/db.js';
 import {
   generateTemporaryPassword,
@@ -42,13 +41,6 @@ const mergePartnerDoc = async (payload = {}, existingPartner = null) => {
   });
 
   const slug = await ensureUniqueSlug(normalized.slug || existingPartner?.slug || normalized.name, existingPartner?._id);
-  const existingAssigned = Array.isArray(existingPartner?.assignedProductIds)
-    ? existingPartner.assignedProductIds
-    : [];
-  const hasAssignedProducts = Object.prototype.hasOwnProperty.call(cleanPayload, 'assignedProductIds');
-  const assignedProductIds = hasAssignedProducts
-    ? normalized.assignedProductIds
-    : existingAssigned;
   const hasLoginEmail = Object.prototype.hasOwnProperty.call(cleanPayload, 'loginEmail');
   const hasLoginPassword = Object.prototype.hasOwnProperty.call(cleanPayload, 'loginPassword');
 
@@ -68,11 +60,6 @@ const mergePartnerDoc = async (payload = {}, existingPartner = null) => {
     loginPassword: hasLoginPassword ? normalized.loginPassword : '',
     status: normalized.status || existingPartner?.status || 'pending',
     partnerMarkupPercent: normalized.partnerMarkupPercent ?? existingPartner?.partnerMarkupPercent ?? 0,
-    assignedProductIds,
-    generatedSubdomain: normalized.customDomainEnabled
-      ? ''
-      : normalized.generatedSubdomain || existingPartner?.generatedSubdomain || '',
-    customDomainEnabled: normalized.customDomainEnabled,
     portalNote: normalized.portalNote || existingPartner?.portalNote || ''
   };
 };
@@ -140,7 +127,9 @@ export const listAdminPartners = async (req, res) => {
     if (status) filter.status = status;
 
     const [items, total] = await Promise.all([
-      Partner.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Partner.find(filter)
+        .select('-assignedProductIds -generatedSubdomain -customDomainEnabled -loginPasswordHash')
+        .sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Partner.countDocuments(filter)
     ]);
 
@@ -159,14 +148,15 @@ export const listAdminPartners = async (req, res) => {
 export const getAdminPartnerById = async (req, res) => {
   try {
     await ensureDb();
-    const partner = await Partner.findById(req.params.id).lean();
+    const partner = await Partner.findById(req.params.id)
+      .select('-assignedProductIds -generatedSubdomain -customDomainEnabled -loginPasswordHash')
+      .lean();
     if (!partner) return res.status(404).json({ success: false, message: 'Partner not found.' });
 
-    const [users, leadsCount, quotesCount, products] = await Promise.all([
+    const [users, leadsCount, quotesCount] = await Promise.all([
       PartnerUser.find({ partnerId: partner._id }).sort({ createdAt: 1 }).lean(),
       PartnerLead.countDocuments({ partnerId: partner._id }),
-      PartnerQuote.countDocuments({ partnerId: partner._id }),
-      Product.find({ _id: { $in: partner.assignedProductIds || [] } }).lean()
+      PartnerQuote.countDocuments({ partnerId: partner._id })
     ]);
 
     return res.json({
@@ -174,11 +164,9 @@ export const getAdminPartnerById = async (req, res) => {
       data: {
         partner,
         users,
-        products,
         stats: {
           leadsCount,
-          quotesCount,
-          assignedProductsCount: (partner.assignedProductIds || []).length
+          quotesCount
         }
       }
     });
@@ -214,10 +202,12 @@ export const createAdminPartner = async (req, res) => {
         })
       : null;
 
+    const { loginPasswordHash: _loginPasswordHash, ...publicPartnerData } = partner.toObject();
+
     return res.status(201).json({
       success: true,
       data: {
-        partner,
+        partner: publicPartnerData,
         user: savedUser
           ? {
               id: savedUser._id,
@@ -250,7 +240,11 @@ export const updateAdminPartner = async (req, res) => {
     }
     delete data.loginPassword;
 
-    const updated = await Partner.findByIdAndUpdate(req.params.id, data, { new: true }).lean();
+    const updated = await Partner.findByIdAndUpdate(
+      req.params.id,
+      { $set: data, $unset: { assignedProductIds: 1, generatedSubdomain: 1, customDomainEnabled: 1 } },
+      { new: true }
+    ).select('-assignedProductIds -generatedSubdomain -customDomainEnabled -loginPasswordHash').lean();
     const savedUser = await syncPrimaryPartnerUser(updated, {
       passwordHash: data.loginPasswordHash,
       updatePassword: Boolean(req.body?.loginPassword)

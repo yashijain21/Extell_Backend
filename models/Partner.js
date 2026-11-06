@@ -24,14 +24,6 @@ const partnerSchema = new mongoose.Schema(
       index: true
     },
     partnerMarkupPercent: { type: Number, default: 0, min: 0 },
-    assignedProductIds: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product'
-      }
-    ],
-    generatedSubdomain: { type: String, default: '', trim: true, index: true },
-    customDomainEnabled: { type: Boolean, default: false },
     portalNote: { type: String, default: '', trim: true }
   },
   {
